@@ -263,12 +263,12 @@
   #tag.on{opacity:1}
 
   /* ── intro ────────────────────────────────────────────── */
-  #intro{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:26px;
+  #intro{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px;
     text-align:center;background:radial-gradient(70% 60% at 50% 45%,rgba(36,31,82,.55),rgba(24,20,58,.9));
     backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
     transition:opacity .8s ease,visibility .8s}
   #intro.gone{opacity:0;visibility:hidden;pointer-events:none}
-  #intro .b{max-width:32ch}
+  #intro .b{max-width:32ch;margin:auto;padding-block:8px;width:100%}
   #intro .greet2{font-family:var(--fd);font-weight:500;font-size:13px;
     color:rgba(253,252,247,.62);margin:-8px 0 18px;min-height:14px}
   #intro .askmood{font-family:var(--fd);font-weight:600;font-size:1.02rem;
@@ -294,6 +294,21 @@
   .quiet{display:block;margin:16px auto 0;background:none;border:0;
     font-family:var(--fb);font-size:13px;color:rgba(253,252,247,.6);
     text-decoration:underline;text-underline-offset:3px}
+  /* short screens: the five moods and the quiet link must all be reachable */
+  @media (max-height:720px){
+    #intro{padding:16px}
+    #intro h1{font-size:clamp(2rem,7.2vw,2.9rem);margin:0 0 10px}
+    #intro p{font-size:.94rem;margin:0 0 14px;line-height:1.42}
+    .askmood{font-size:.96rem;margin:2px 0 10px}
+    .moods{gap:7px;margin:0 0 10px}
+    .moods button{padding:10px 11px;font-size:13px;border-radius:12px}
+    .quiet{margin:10px auto 0}
+  }
+  @media (max-height:600px){
+    #intro h1{font-size:1.85rem;margin:0 0 7px}
+    #intro p{font-size:.86rem;margin:0 0 10px}
+    .moods button{padding:9px 10px;font-size:12.5px}
+  }
   .quiet:hover{color:rgba(253,252,247,.9)}
 
   /* ── card ─────────────────────────────────────────────── */
@@ -2374,8 +2389,17 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var q=m.quotes[Math.floor(Math.random()*m.quotes.length)];
     var el=document.getElementById("quote"), t=document.getElementById("quoteT");
     if (!el||!t) return;
-    t.textContent=q; el.classList.add("on");
-    setTimeout(function(){ el.classList.remove("on"); }, 7000);
+    // she may still be reading "How this works". The 350ms watchdog strips any
+    // quote shown over an open panel, so firing now would burn it unseen - wait
+    // for a clear screen instead, then give her the line for her mood.
+    var waited=0;
+    (function show(){
+      var blocked=false;
+      try{ blocked=(typeof busy==="function") && busy(); }catch(e){}
+      if (blocked && waited<30000){ waited+=400; setTimeout(show,400); return; }
+      t.textContent=q; el.classList.add("on");
+      setTimeout(function(){ el.classList.remove("on"); }, 7000);
+    })();
   }
 
   (function buildGate(){
