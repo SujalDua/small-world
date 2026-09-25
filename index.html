@@ -255,6 +255,10 @@
   #quote.on{opacity:1;transform:translate(-50%,0)}
   #quote p{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(1rem,2.6vw,1.22rem);
     line-height:1.45;color:var(--snow);text-shadow:0 2px 18px rgba(12,8,28,.85)}
+#quoteW{margin:7px 0 0;font-size:10.5px;font-weight:700;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--butter);opacity:.9}
+#quoteW:empty{display:none}
+#quoteT.verse{font-style:italic;font-weight:400}
   #catsay{position:fixed;z-index:6;pointer-events:none;transform:translate(-50%,-100%);
     font-family:var(--fd);font-weight:600;font-size:13px;color:var(--ink);
     background:var(--snow);padding:7px 13px;border-radius:99px;white-space:nowrap;
@@ -577,6 +581,43 @@ button{-webkit-tap-highlight-color:transparent}
   .back{padding:6px 9px;font-size:10.5px}
   body.hasback .brand{display:none}
 }
+
+/* ══ looks ══ chosen deliberately, and overriding whatever her mood picked */
+html[data-theme="midnight"]{
+  --sky1:#161334; --sky2:#3C2F6E; --sky3:#A487C4;
+  --coral:#FF8E7F; --butter:#FFD98E; --mint:#8FD9C4; --mint2:#4FA98E; --lilac:#B9A6E8;
+}
+html[data-theme="rose"]{
+  --sky1:#2E1024; --sky2:#7E3350; --sky3:#EDA9A6;
+  --coral:#FF8FA3; --butter:#FFD8B4; --mint:#D8B7C2; --mint2:#9A5E72; --lilac:#E3AECB;
+}
+html[data-theme="ember"]{
+  --sky1:#24111A; --sky2:#8A3F2C; --sky3:#F3BC84;
+  --coral:#FF7A55; --butter:#FFCF8A; --mint:#E0B48C; --mint2:#A2643C; --lilac:#E8A87C;
+}
+html[data-theme="sea"]{
+  --sky1:#07202F; --sky2:#1C5A65; --sky3:#9ED6C6;
+  --coral:#FF9E7A; --butter:#CFEFE2; --mint:#8FE0CB; --mint2:#3C8F86; --lilac:#9CCBD6;
+}
+.lookgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 4px}
+.lookgrid button{font-family:var(--fd);font-weight:600;font-size:12px;
+  border:1.5px solid rgba(30,27,58,.16);background:transparent;color:var(--ink2);
+  border-radius:10px;padding:8px 6px;display:flex;align-items:center;gap:7px;
+  justify-content:center;transition:all .2s}
+.lookgrid button:hover{border-color:var(--ink2);color:var(--ink)}
+.lookgrid button[aria-pressed="true"]{background:var(--ink);color:var(--snow);border-color:var(--ink)}
+.lookgrid i{width:12px;height:12px;border-radius:50%;flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(30,27,58,.14) inset}
+.lookgrid button:last-child:nth-child(odd){grid-column:1 / -1}
+
+/* the Look section made this taller than a phone; let it scroll inside itself */
+.volpop{max-height:calc(100vh - 84px);overflow-y:auto;overscroll-behavior:contain}
+@media (max-height:760px){
+  .volpop{max-height:calc(100vh - 76px)}
+  .lookgrid button,.moodgrid button{padding:7px 5px;font-size:11.5px}
+  .volpop .vlab{margin:0 0 7px}
+  .volpop .vmute{padding:9px;font-size:11.5px}
+}
 </style>
 
 <div id="sky" aria-hidden="true"></div>
@@ -602,7 +643,9 @@ button{-webkit-tap-highlight-color:transparent}
     <button class="helpbtn" id="help" type="button" aria-label="How this works">?</button>
     <button class="snd" id="snd" type="button" aria-label="Sound settings">&#128266;</button>
     <div class="volpop" id="volpop">
-      <p class="vlab">Mood</p>
+      <p class="vlab">Look</p>
+      <div class="lookgrid" id="lookgrid"></div>
+      <p class="vlab" style="margin-top:14px">Music</p>
       <div class="moodgrid" id="moodgrid"></div>
       <p class="vlab" style="margin-top:14px">Volume</p>
       <input id="vol" type="range" min="0" max="100" value="80" aria-label="Volume">
@@ -690,7 +733,7 @@ button{-webkit-tap-highlight-color:transparent}
 
 <nav class="nav" id="nav" aria-label="Scenes"></nav>
 <div id="tag" aria-hidden="true"></div>
-<div id="quote" aria-hidden="true"><p id="quoteT"></p></div>
+<div id="quote" aria-hidden="true"><p id="quoteT"></p><p id="quoteW"></p></div>
 <div id="catsay" aria-hidden="true"></div>
 <div id="sndmsg" aria-live="polite"></div>
 
@@ -833,7 +876,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   var AUD = (function(){
     var ctx=null, master=null, verb=null, comp=null, padLP=null;
     var on=true, timer=null, started=false, voices=[];
-    var chordIdx=0, nextChordT=0;
+    var chordIdx=0, nextChordT=0, pend=[];
 
     var vol=.8;
     try{ on = localStorage.getItem("tofu.sound")!=="0"; }catch(e){}
@@ -935,22 +978,34 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       { bass:65.41, pad:[130.81,196.00,261.63],
         tune:[[0.6,329.63,.06],[2.8,293.66,.05],[5.2,261.63,.05],[8.0,196.00,.045]] }
     ];
+    /* Changing only the notes was not enough - four maj7 progressions on the
+       same felt piano all sound like the same song. Each genre now carries its
+       own voice and its own filtering, so they are told apart immediately. */
+    var TONES={
+      felt:  { o1:"triangle", o2:"sine",     lp0:1500, lp1:620,  atk:.22, det:1.003 },
+      glass: { o1:"sine",     o2:"sine",     lp0:3400, lp1:1500, atk:.10, det:1.006 },
+      pluck: { o1:"triangle", o2:"triangle", lp0:2800, lp1:700,  atk:.035,det:1.002 },
+      reed:  { o1:"sawtooth", o2:"sine",     lp0:1150, lp1:500,  atk:.30, det:1.004 },
+      rain:  { o1:"sine",     o2:"triangle", lp0:1000, lp1:430,  atk:.26, det:1.008 }
+    };
     var MOODS=[
-      { id:"warm",    name:"Warm",       prog:DUSK,    bar:8.0  },
-      { id:"dreamy",  name:"Dreamy",     prog:DREAMY,  bar:11.0 },
-      { id:"night",   name:"Late night", prog:NIGHT,   bar:9.5  },
-      { id:"bright",  name:"Bright",     prog:BRIGHT,  bar:6.5  },
-      { id:"monsoon", name:"Monsoon",    prog:MONSOON, bar:11.0 },
-      { id:"lofi",    name:"Lo-fi",      prog:LOFI,    bar:9.0  },
-      { id:"raga",    name:"Raga",       prog:RAGA,    bar:10.5 }
+      { id:"warm",    name:"Warm",       prog:DUSK,    bar:8.0,  tone:"felt",  cut:1000 },
+      { id:"dreamy",  name:"Dreamy",     prog:DREAMY,  bar:11.0, tone:"glass", cut:1500 },
+      { id:"night",   name:"Late night", prog:NIGHT,   bar:9.5,  tone:"felt",  cut:680  },
+      { id:"bright",  name:"Bright",     prog:BRIGHT,  bar:6.5,  tone:"pluck", cut:1900 },
+      { id:"monsoon", name:"Monsoon",    prog:MONSOON, bar:11.0, tone:"rain",  cut:780  },
+      { id:"lofi",    name:"Lo-fi",      prog:LOFI,    bar:9.0,  tone:"pluck", cut:900  },
+      { id:"raga",    name:"Raga",       prog:RAGA,    bar:10.5, tone:"reed",  cut:1250 }
     ];
+    var TN=TONES.felt;
     var moodIx=0, dawnOn=false;
     try{
       var sm=localStorage.getItem("tofu.mood");
       for (var mi=0;mi<MOODS.length;mi++) if (MOODS[mi].id===sm) moodIx=mi;
     }catch(e){}
     var prog=MOODS[moodIx].prog;
-    var BAR=MOODS[moodIx].bar;                       // one chord, and its phrase, every 8s
+    var BAR=MOODS[moodIx].bar;
+    TN=TONES[MOODS[moodIx].tone]||TONES.felt;                       // one chord, and its phrase, every 8s
 
     function init(){
       if (ctx) return true;
@@ -975,7 +1030,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
       // the bed: gentle, non-resonant, each voice breathing on its own clock
       padLP = ctx.createBiquadFilter();
-      padLP.type="lowpass"; padLP.frequency.value=1000; padLP.Q.value=.35;
+      padLP.type="lowpass"; padLP.frequency.value=MOODS[moodIx].cut||1000; padLP.Q.value=.35;
       padLP.connect(comp); padLP.connect(verb);
       for (var i=0;i<3;i++){
         var o=ctx.createOscillator(), g=ctx.createGain();
@@ -999,19 +1054,20 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     function felt(freq,t,vol,dur){
       var o=ctx.createOscillator(), o2=ctx.createOscillator();
       var g=ctx.createGain(), lp=ctx.createBiquadFilter();
-      o.type="triangle"; o2.type="sine";
-      o.frequency.value=freq; o2.frequency.value=freq*1.003;
+      o.type=TN.o1; o2.type=TN.o2;
+      o.frequency.value=freq; o2.frequency.value=freq*TN.det;
       lp.type="lowpass"; lp.Q.value=.4;
-      lp.frequency.setValueAtTime(1500,t);
-      lp.frequency.linearRampToValueAtTime(620,t+dur*.8);
+      lp.frequency.setValueAtTime(TN.lp0,t);
+      lp.frequency.linearRampToValueAtTime(TN.lp1,t+dur*.8);
       g.gain.setValueAtTime(.0001,t);
-      g.gain.linearRampToValueAtTime(vol,t+.22);      // <- the soft attack
+      g.gain.linearRampToValueAtTime(vol,t+TN.atk);   // <- the attack
       g.gain.linearRampToValueAtTime(vol*.55,t+dur*.45);
       g.gain.exponentialRampToValueAtTime(.0001,t+dur);
       var g2=ctx.createGain(); g2.gain.value=.5;
       o.connect(lp); o2.connect(g2); g2.connect(lp);
       lp.connect(g); g.connect(comp); g.connect(verb);
       o.start(t); o2.start(t); o.stop(t+dur+.1); o2.stop(t+dur+.1);
+      pend.push({g:g,o:o,o2:o2,end:t+dur+.1});
     }
     function low(freq,t){
       var o=ctx.createOscillator(), g=ctx.createGain(), lp=ctx.createBiquadFilter();
@@ -1022,6 +1078,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       g.gain.exponentialRampToValueAtTime(.0001,t+6.5);
       o.connect(lp); lp.connect(g); g.connect(comp);
       o.start(t); o.stop(t+6.6);
+      pend.push({g:g,o:o,end:t+6.6});
     }
 
     function setPad(ch,t){
@@ -1029,7 +1086,49 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
         voices[i].o.frequency.linearRampToValueAtTime(ch.pad[i], t+3.0);
     }
 
+    /* Switching genre used to take effect only at the next bar - up to eleven
+       seconds of hearing the old one, which reads as "nothing happened".
+       This stops what is sounding and starts the new progression at once. */
+    function cutover(){
+      if (!ctx) return;
+      var now=ctx.currentTime, i;
+      for (i=0;i<pend.length;i++){
+        var p=pend[i];
+        if (p.end<=now) continue;
+        try{
+          var gv=p.g.gain;
+          gv.cancelScheduledValues(now);
+          gv.setValueAtTime(Math.max(gv.value,.0001), now);
+          gv.exponentialRampToValueAtTime(.0001, now+.28);
+          if (p.o)  p.o.stop(now+.33);
+          if (p.o2) p.o2.stop(now+.33);
+        }catch(e){}
+      }
+      pend=[];
+      chordIdx=0; nextChordT=now+.06;
+      var ch=prog[0];
+      for (i=0;i<voices.length;i++){
+        try{
+          var f=voices[i].o.frequency;
+          f.cancelScheduledValues(now);
+          f.setValueAtTime(f.value, now);
+          f.linearRampToValueAtTime(ch.pad[i % ch.pad.length], now+.75);
+        }catch(e){}
+      }
+      if (padLP){
+        try{
+          padLP.frequency.cancelScheduledValues(now);
+          padLP.frequency.setValueAtTime(padLP.frequency.value, now);
+          padLP.frequency.linearRampToValueAtTime(MOODS[moodIx].cut||1000, now+.6);
+        }catch(e){}
+      }
+      schedule();
+    }
+
     function schedule(){
+      // drop finished one-shots so the list cannot grow without bound
+      if (pend.length>90){ var nw=ctx.currentTime;
+        pend=pend.filter(function(p){ return p.end>nw; }); }
       if (!ctx || !on) return;
       var now=ctx.currentTime;
       while (nextChordT < now + 1.6){
@@ -1115,7 +1214,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
         if (i<0||i>=MOODS.length) return moodIx;
         moodIx=i;
         try{ localStorage.setItem("tofu.mood",MOODS[i].id); }catch(e){}
+        TN = TONES[MOODS[i].tone] || TONES.felt;
         if (!dawnOn){ prog=MOODS[i].prog; BAR=MOODS[i].bar; }
+        cutover();                       // she hears it immediately, not next bar
         return moodIx;
       },
       state: function(){ return ctx ? ctx.state : "none"; },
@@ -2604,6 +2705,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     "and the third of February is not going anywhere.\n\n" +
     "Wear the saree.";
 
+  window.__REASONS = REASONS;
   var UNLOCK_AT = 12;
   var rsn=document.getElementById("rsn"), rsWhy=document.getElementById("rsWhy"),
       rsCount=document.getElementById("rsCount"), rsLetterBtn=document.getElementById("rsLetter");
@@ -2646,8 +2748,16 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     rsLetterBtn.hidden = seen < UNLOCK_AT;
     AUD.sfx("open");
   }
-  function showReasons(){ rsn.classList.add("on"); rsDraw(); }
-  function hideReasons(){ rsn.classList.remove("on"); }
+  var rAuto=null;
+  function showReasons(){
+    rsn.classList.add("on"); rsDraw();
+    if (rAuto) clearInterval(rAuto);
+    rAuto=setInterval(function(){ if (rsn.classList.contains("on")) rsDraw(); }, 7000);
+  }
+  function hideReasons(){
+    rsn.classList.remove("on");
+    if (rAuto){ clearInterval(rAuto); rAuto=null; }
+  }
   document.getElementById("why").addEventListener("click",showReasons);
   document.getElementById("rsMore").addEventListener("click",rsDraw);
   document.getElementById("rsOk").addEventListener("click",hideReasons);
@@ -2709,6 +2819,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       m:"By me, by everyone who has met you, and by five photographs you sent yourself and then apologised for." }
   ];
 
+  window.__VERSE = VERSE;
   var vrs=document.getElementById("vrs"), vBag=[];
   function vDraw(){
     if (!vBag.length){ for (var i=0;i<VERSE.length;i++) vBag.push(i);
@@ -2726,8 +2837,17 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     },170);
     AUD.sfx("open");
   }
-  function showVerse(){ vrs.classList.add("on"); vDraw(); }
-  function hideVerse(){ vrs.classList.remove("on"); }
+  var vAuto=null;
+  function showVerse(){
+    vrs.classList.add("on"); vDraw();
+    // no more tapping "Another" over and over - it turns the page itself
+    if (vAuto) clearInterval(vAuto);
+    vAuto=setInterval(function(){ if (vrs.classList.contains("on")) vDraw(); }, 8000);
+  }
+  function hideVerse(){
+    vrs.classList.remove("on");
+    if (vAuto){ clearInterval(vAuto); vAuto=null; }
+  }
   document.getElementById("verse").addEventListener("click",showVerse);
   document.getElementById("vrsMore").addEventListener("click",vDraw);
   document.getElementById("vrsOk").addEventListener("click",hideVerse);
@@ -3254,6 +3374,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     moodNow=id;
     try{ localStorage.setItem("tofu.feel", id); }catch(e){}
     document.documentElement.setAttribute("data-mood", id);
+    if (themeNow) document.documentElement.setAttribute("data-theme", themeNow);
     refillBag();
     // repaint the 3D world to match
     if (scene && scene.fog) scene.fog.color.setHex(m.fog);
@@ -3262,6 +3383,39 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (islandTop && islandTop.material) islandTop.material.color.setHex(m.isle);
     if (withSound!==false) AUD.setMood(m.music);
   }
+  /* ══════ looks ═════════════════════════════════════════
+     "Auto" keeps following whatever she said at the door; the rest override it
+     and stay put until she changes them. */
+  var LOOKS=[
+    { id:"",         name:"Auto",     dot:"linear-gradient(135deg,#FF8E7F,#B9A6E8)" },
+    { id:"midnight", name:"Midnight", dot:"linear-gradient(135deg,#3C2F6E,#A487C4)" },
+    { id:"rose",     name:"Rose",     dot:"linear-gradient(135deg,#7E3350,#EDA9A6)" },
+    { id:"ember",    name:"Ember",    dot:"linear-gradient(135deg,#8A3F2C,#F3BC84)" },
+    { id:"sea",      name:"Sea",      dot:"linear-gradient(135deg,#1C5A65,#9ED6C6)" }
+  ];
+  var themeNow="";
+  try{ themeNow=localStorage.getItem("tofu.look")||""; }catch(e){}
+  function applyLook(id){
+    themeNow=id;
+    try{ localStorage.setItem("tofu.look", id); }catch(e){}
+    if (id) document.documentElement.setAttribute("data-theme", id);
+    else    document.documentElement.removeAttribute("data-theme");
+    var g=document.getElementById("lookgrid");
+    if (g) for (var i=0;i<g.children.length;i++)
+      g.children[i].setAttribute("aria-pressed", LOOKS[i].id===id ? "true":"false");
+  }
+  (function buildLooks(){
+    var g=document.getElementById("lookgrid"); if (!g) return;
+    LOOKS.forEach(function(L){
+      var b=document.createElement("button");
+      b.type="button";
+      b.innerHTML='<i style="background:'+L.dot+'"></i>'+L.name;
+      b.addEventListener("click",function(){ applyLook(L.id); AUD.sfx("swap"); });
+      g.appendChild(b);
+    });
+    applyLook(themeNow);
+  })();
+
   function moodQuote(){
     // one-shot on mood change; the rotating bag handles the rest
     var m=moodById(moodNow) || MOODS_GATE[0];
@@ -3392,26 +3546,56 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     return false;
   }
   function refillBag(){
+    // Everything that used to be locked behind a button now drifts past on its
+    // own: her mood lines, the reasons, and the borrowed verses. Tapping is for
+    // when she wants more of one thing, not the only way to see any of it.
     var m=moodById(moodNow);
-    var pool=SOFT_LINES.concat(m && m.quotes ? m.quotes : []);
-    qBag=pool.slice();
-    for (var i=qBag.length-1;i>0;i--){
-      var j=Math.floor(Math.random()*(i+1)), t=qBag[i]; qBag[i]=qBag[j]; qBag[j]=t;
+    var pool=[];
+    var soft=SOFT_LINES.concat(m && m.quotes ? m.quotes : []);
+    for (var s=0;s<soft.length;s++) pool.push({t:soft[s], w:"", v:false, k:0});
+    if (window.__REASONS) for (var r=0;r<window.__REASONS.length;r++)
+      pool.push({t:window.__REASONS[r], w:"", v:false, k:1});
+    if (window.__VERSE) for (var v=0;v<window.__VERSE.length;v++){
+      var e=window.__VERSE[v];
+      pool.push({t:e.t.replace(/<br>/g," "), w:(e.w==="mine"?"":e.w), v:true, k:2});
+    }
+    // Shuffling one big pool meant a borrowed verse might not appear for
+    // minutes - they are only a tenth of it. Deal from three shuffled decks
+    // instead, so she reliably gets a mix.
+    function shuf(a){ for (var i=a.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1)), t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+    var decks=[[],[],[]];
+    for (var q=0;q<pool.length;q++) decks[pool[q].k].push(pool[q]);
+    for (var d=0;d<3;d++) shuf(decks[d]);
+    var order=[0,1,2,0,1], oi=0;
+    qBag=[];
+    while (decks[0].length||decks[1].length||decks[2].length){
+      for (var n=0;n<5;n++){
+        var k=order[(oi+n)%order.length];
+        if (decks[k].length){ qBag.push(decks[k].shift()); break; }
+      }
+      oi++;
+      if (oi>pool.length+8) break;
     }
   }
   function showQuote(){
     if (!qEl || !qBox) return;
     if (busy()){ qBox.classList.remove("on"); return; }
     if (!qBag.length) refillBag();
-    qEl.textContent = qBag.shift();
+    var item=qBag.shift();
+    if (typeof item==="string") item={t:item,w:"",v:false};
+    qEl.innerHTML = item.t;
+    qEl.classList.toggle("verse", !!item.v);
+    var wEl=document.getElementById("quoteW");
+    if (wEl) wEl.textContent = item.w || "";
     qBox.classList.add("on");
-    setTimeout(function(){ qBox.classList.remove("on"); }, 8200);
+    setTimeout(function(){ qBox.classList.remove("on"); }, item.v?9600:8200);
   }
   function startQuotes(){
     if (qTimer) return;
     refillBag();
-    setTimeout(showQuote, 2600);
-    qTimer=setInterval(showQuote, 13000);
+    setTimeout(showQuote, 2200);
+    qTimer=setInterval(showQuote, 9000);
     // a quote already on screen must get out of the way the moment she opens
     // something - the card is a side panel, so it would otherwise sit over it
     setInterval(function(){
