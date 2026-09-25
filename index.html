@@ -60,7 +60,11 @@
 
   #sky{position:fixed;inset:0;z-index:0;transition:opacity 2.4s ease;
     background:linear-gradient(176deg,var(--sky1) 0%,var(--sky2) 52%,var(--sky3) 100%)}
-  #dawn{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity 2.6s ease;
+  #night{position:fixed;inset:0;z-index:0;opacity:0;pointer-events:none;
+    transition:opacity 1.1s ease;
+    background:radial-gradient(120% 90% at 50% 8%,#2A2A5E 0%,#171436 42%,#0B0A1E 100%)}
+#night.on{opacity:1}
+#dawn{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity 2.6s ease;
     background:linear-gradient(176deg,#3E5C93 0%,#E9A48E 55%,#FFE2B8 100%)}
   #world{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
   #grain{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.055;
@@ -485,10 +489,46 @@
 #ltrBody b{color:var(--ink);font-weight:600}
 #ltrCur{opacity:.5}
 
+
+/* ── the night sky ── */
+.skycap{opacity:0;transform:translateY(6px);margin:12px 0 0;
+    transition:opacity .45s ease,transform .45s ease}
+.skycap.on{opacity:1;transform:none}
+.skyT{font-family:var(--fd);font-weight:700;font-size:1.05rem;letter-spacing:-.01em;
+    color:var(--ink);margin:0 0 6px}
+.skyB{font-size:14.5px;line-height:1.62;color:var(--ink2);margin:0}
+.skydone{display:none;margin:13px 0 0;font-family:var(--fd);font-weight:700;
+    font-size:13px;letter-spacing:.01em;color:var(--coral)}
+.skydone.on{display:block}
+
+/* ── six rooms will not fit one phone row: scroll it instead of wrapping,
+      because a wrapped second row climbs over the panel above it ── */
+@media (max-width:700px){
+  .nav{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;
+    padding:0 12px 14px;scrollbar-width:none;-ms-overflow-style:none;
+    -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;
+    mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%)}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{flex:0 0 auto;scroll-snap-align:center}
+}
+
+/* ── the top row gained a button, and on a phone that pushed the name into
+      two lines with "Back" landing on top of the cake. Keep it to one row. ── */
+@media (max-width:700px){
+  .top{gap:8px;padding:12px 12px}
+  .tl{display:flex;align-items:center;gap:8px;min-width:0}
+  .brand{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr{gap:6px}
+  .helpbtn,.snd{width:32px;height:32px;font-size:13px}
+  .back{padding:7px 10px;font-size:11px;gap:4px}
+  .eq{display:none}
+}
 </style>
 
 <div id="sky" aria-hidden="true"></div>
 <div id="dawn" aria-hidden="true"></div>
+<div id="night" aria-hidden="true"></div>
 <canvas id="world"></canvas>
 <div id="vig" aria-hidden="true"></div>
 <div id="grain" aria-hidden="true"></div>
@@ -583,6 +623,17 @@
   <p class="phint" id="pHint"></p>
 </div>
 
+<div class="panel hide" id="hud6">
+  <p class="qprog" id="skyProg">0 of 14 found</p>
+  <p class="pintro">Fourteen of these are not stars. Drag to look around, then tap one.</p>
+  <div class="skycap" id="skyCap">
+    <p class="skyT" id="skyT"></p>
+    <p class="skyB" id="skyB"></p>
+  </div>
+  <p class="skydone" id="skyDone">That is all fourteen. It was a cat the whole time.</p>
+  <button class="panelreset" id="resetSky" type="button">Clear the sky</button>
+</div>
+
 <nav class="nav" id="nav" aria-label="Scenes"></nav>
 <div id="tag" aria-hidden="true"></div>
 <div id="quote" aria-hidden="true"><p id="quoteT"></p></div>
@@ -593,7 +644,7 @@
   <div class="b">
     <p class="greet" id="greet"></p>
     <p class="greet2" id="greet2"></p>
-    <h1>Five rooms,<br>one small <b>world</b>.</h1>
+    <h1>Six rooms,<br>one small <b>world</b>.</h1>
     <p>An island with six things on it, a machine that makes your decisions,
       a stack of receipts you did not ask for, a quiz you will probably lose, and a postbox so you can answer back.</p>
     <p class="askmood">First, honestly &mdash; how are you today?</p>
@@ -1197,12 +1248,22 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   /* ══════ renderer ══════════════════════════════════════ */
   var cv=document.getElementById("world"), R, hasGL=!!window.THREE;
-  if (hasGL){ try{ R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  if (hasGL){ try{ R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,
+                powerPreference:"high-performance"});
+                // colour-managed output + filmic roll-off: highlights stop clipping
+                // to flat white, which is what made the lamp and the snow look cheap
+                if ("outputColorSpace" in R) R.outputColorSpace = THREE.SRGBColorSpace;
+                R.toneMapping = THREE.ACESFilmicToneMapping;
+                R.toneMappingExposure = 1.22;
+              }
               catch(e){ hasGL=false; } }
 
   var scene, cam, lamp, island, objs=[], snow=null, clouds=null, ray, ptr=new THREE.Vector2(-9,-9);
   var mouseX=innerWidth/2, mouseY=innerHeight/2;
   var hemi=null, islandTop=null;
+  var S6=null, skyHits=[], skySprites=[], skyLine=null, skyDone=false, skyFound={};
+  var skyPan=0, skyVel=0;
+  var D6=15.5;
   var S1,S2,S3,S4,S5, flies=null, postbox=null, envelope=null, orb=null, stars=null, wheel=null, lever=null, printer=null, slips=[];
   var yaw=Math.random()*6.2832, vYaw=0, drag=false, moved=0, lastX=0, hov=-1;
   var CAMD=17.8, cur=0;
@@ -1600,6 +1661,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     S2=buildDecider(); scene.add(S2);
     S3=new THREE.Group(); S3.add(buildPrinter()); S3.position.y=1.9;
     S3.visible=false; scene.add(S3);
+    skyLoad();
+    S6=buildSky(); scene.add(S6);
 
     resize();
     if (found()>=N) dawn(true);
@@ -1607,11 +1670,194 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (slips.length) slips.forEach(function(m){ m.userData.age=3; });
   }
 
+
+  /* ══════ scene 6: the night sky ════════════════════════
+     Fourteen of the stars are real moments. Tapping one lights it and joins
+     it to its neighbours; the finished outline is a cat, because of course
+     it is. Everything here is dated from the chats - nothing invented. */
+  var SKYPTS = [
+    { x:-0.40, y:0.96, t:"5:12 in the morning",
+      b:"Your earliest good morning. The next three are 5:22, 5:50 and 6:02. Nobody has ever beaten you to it." },
+    { x:-0.22, y:0.60, t:"The fourteenth of August",
+      b:"Two wishes, typed in one go. Making your family proud, and seeing the world with me. You did not put yourself in either one." },
+    { x:0.06, y:0.60, t:"Tofu",
+      b:"Named before the cat exists. That is the correct order to do these things in and I will not be taking questions." },
+    { x:0.24, y:0.96, t:"Seven ten in the evening",
+      b:"SPITI JAANA HAI YAAWR. In capitals. The trip was decided in that one message and has never once been reopened." },
+    { x:0.38, y:0.52, t:"The nineteenth of August",
+      b:"You asked what my favourite sweet was. Sixteen days later your name changed and it has not changed back." },
+    { x:0.42, y:0.16, t:"The eighteenth of August",
+      b:"You started. Announced it exactly once, then simply kept going - no countdown, no relaunch, no second announcement." },
+    { x:0.58, y:-0.18, t:"Five hundred and forty",
+      b:"Messages in a single day. Neither of us noticed at the time, which is the part I like." },
+    { x:0.62, y:-0.58, t:"Four thousand two hundred and fifty-five",
+      b:"Videos sent between us. Your feed had worked the two of us out long before either of us said anything." },
+    { x:0.97, y:-0.50, t:"The sixth of September",
+      b:"The bloodwork. You hate seeing doctors, said so plainly, went anyway, and came out with results worth being pleased about." },
+    { x:0.80, y:-0.88, t:"Twenty to eleven at night",
+      b:"&ldquo;i wish i was so cool like you&rdquo;. For the record, and with all the evidence in front of me, it points the other way." },
+    { x:0.26, y:-0.94, t:"Ten forty-eight, thirty-first of August",
+      b:"WILL MAKE MYSELF PROUD. Typed in capitals, and then actually done. That one is the receipt for all the others." },
+    { x:-0.22, y:-0.90, t:"duniya itni badi aor sundar hai",
+      b:"You wished the jobs simply did not exist so the two of us could go and experience it. Nobody has improved on that idea since." },
+    { x:-0.44, y:-0.40, t:"The otter",
+      b:"It turns up in your goodnights. You have never explained it and I sincerely hope you never do." },
+    { x:-0.46, y:0.10, t:"The third of February",
+      b:"Your birthday, and the deadline you set yourself on the twenty-fourth of August, entirely unprompted. Both are still standing." }
+  ];
+
+  function glowTex(warm){
+    var S=128, c=document.createElement("canvas"); c.width=c.height=S;
+    var x=c.getContext("2d"), g=x.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+    // a hard little core with a fast falloff - a wide gradient reads as fog
+    g.addColorStop(0,   "rgba(255,255,255,1)");
+    g.addColorStop(.06, "rgba(255,255,255,.96)");
+    g.addColorStop(.14, warm?"rgba(255,226,172,.72)":"rgba(206,222,255,.62)");
+    g.addColorStop(.30, warm?"rgba(243,166,104,.20)":"rgba(138,168,255,.16)");
+    g.addColorStop(.62, warm?"rgba(233,116,81,.05)":"rgba(110,140,230,.04)");
+    g.addColorStop(1,   "rgba(255,255,255,0)");
+    x.fillStyle=g; x.fillRect(0,0,S,S);
+    return new THREE.CanvasTexture(c);
+  }
+  var TEX_COLD=null, TEX_WARM=null;
+
+  function skyPos(p){
+    var X=p.x*6.4, Y=p.y*3.7+9.0;
+    return new THREE.Vector3(X, Y, -3.0-(X*X+Y*Y)*.022);
+  }
+
+  function buildSky(){
+    var g=new THREE.Group();
+    TEX_COLD=glowTex(false); TEX_WARM=glowTex(true);
+
+    /* the ordinary stars, a long way back */
+    var N=1500, pos=new Float32Array(N*3), col=new Float32Array(N*3), c=new THREE.Color();
+    for (var i=0;i<N;i++){
+      var th=Math.random()*6.2832, ph=Math.random()*1.25, r=58+Math.random()*26;
+      pos[i*3]  = Math.cos(th)*Math.cos(ph)*r;
+      pos[i*3+1]= Math.sin(ph)*r*.9-6;
+      pos[i*3+2]= -Math.abs(Math.sin(th)*Math.cos(ph)*r)*.5-14;
+      c.setHSL(.58+Math.random()*.12, .5, .55+Math.random()*.35);
+      col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+    }
+    var gg=new THREE.BufferGeometry();
+    gg.setAttribute("position", new THREE.BufferAttribute(pos,3));
+    gg.setAttribute("color", new THREE.BufferAttribute(col,3));
+    var field=new THREE.Points(gg, new THREE.PointsMaterial({
+      size:.42, vertexColors:true, transparent:true, opacity:.85,
+      depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true }));
+    field.userData.field=true;
+    g.add(field);
+
+    /* a wash of colour behind it all, so the black is never flat */
+    var nb=new THREE.Mesh(new THREE.PlaneGeometry(150,90),
+      new THREE.MeshBasicMaterial({ map:glowTex(false), transparent:true, opacity:.15,
+        depthWrite:false, blending:THREE.AdditiveBlending, color:new THREE.Color(0x6F6BD8) }));
+    nb.position.set(-6,8,-40); g.add(nb);
+    var nb2=nb.clone(); nb2.material=nb.material.clone();
+    nb2.material.color=new THREE.Color(0xE97451); nb2.material.opacity=.1;
+    nb2.position.set(14,-2,-38); nb2.scale.setScalar(.7); g.add(nb2);
+
+    /* the fourteen */
+    skyHits=[]; skySprites=[];
+    for (var k=0;k<SKYPTS.length;k++){
+      var s=new THREE.Sprite(new THREE.SpriteMaterial({
+        map:TEX_COLD, transparent:true, depthWrite:false,
+        blending:THREE.AdditiveBlending, opacity:.75 }));
+      s.position.copy(skyPos(SKYPTS[k]));
+      s.scale.setScalar(.74);
+      s.userData={ i:k, found:false, tw:Math.random()*6.28, base:.74 };
+      var hit=new THREE.Mesh(new THREE.SphereGeometry(.95,10,8),
+        new THREE.MeshBasicMaterial({visible:false}));
+      hit.position.copy(s.position);
+      hit.userData={ i:k };
+      g.add(hit); g.add(s); skyHits.push(hit); skySprites.push(s);
+    }
+
+    /* the joins, filled in as she finds them */
+    var lg=new THREE.BufferGeometry();
+    lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SKYPTS.length*6),3));
+    lg.setDrawRange(0,0);
+    skyLine=new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+      color:0xFFE0B4, transparent:true, opacity:.62, depthWrite:false,
+      blending:THREE.AdditiveBlending }));
+    g.add(skyLine);
+
+    g.visible=false;
+    return g;
+  }
+
+  function skyPaint(){
+    var n=0, k;
+    for (k=0;k<skySprites.length;k++){
+      var s=skySprites[k], f=!!skyFound[k];
+      s.userData.found=f;
+      s.material.map = f?TEX_WARM:TEX_COLD;
+      s.material.opacity = f?1:.84;
+      s.userData.base = f?1.12:.74;
+      if (f) n++;
+    }
+    for (k=0;k<skyHits.length;k++) skyHits[k].visible=true;
+    /* joins between neighbours that are both lit */
+    var arr=skyLine.geometry.attributes.position.array, w=0;
+    for (k=0;k<skySprites.length;k++){
+      var k2=(k+1)%skySprites.length;          // closed outline, not an open zigzag
+      if (skyFound[k] && skyFound[k2]){
+        var a=skySprites[k].position, b=skySprites[k2].position;
+        arr[w++]=a.x; arr[w++]=a.y; arr[w++]=a.z;
+        arr[w++]=b.x; arr[w++]=b.y; arr[w++]=b.z;
+      }
+    }
+    skyLine.geometry.attributes.position.needsUpdate=true;
+    skyLine.geometry.setDrawRange(0,w/3);
+    skyDone = n>=SKYPTS.length;
+
+    document.getElementById("skyProg").textContent =
+      skyDone ? "all fourteen found" : (n+" of "+SKYPTS.length+" found");
+    if (skyDone){
+      skyLine.material.opacity=.95;
+      document.getElementById("skyDone").classList.add("on");
+    } else {
+      skyLine.material.opacity=.5;
+      document.getElementById("skyDone").classList.remove("on");
+    }
+    return n;
+  }
+
+  function skySave(){
+    try{ localStorage.setItem("tofu.sky", JSON.stringify(Object.keys(skyFound))); }catch(e){}
+  }
+  function skyLoad(){
+    skyFound={};
+    try{
+      var a=JSON.parse(localStorage.getItem("tofu.sky")||"[]");
+      for (var i=0;i<a.length;i++) skyFound[a[i]]=true;
+    }catch(e){}
+  }
+  function skyTap(k){
+    var first=!skyFound[k];
+    skyFound[k]=true; skySave();
+    var n=skyPaint();
+    var p=SKYPTS[k];
+    document.getElementById("skyT").innerHTML=p.t;
+    document.getElementById("skyB").innerHTML=p.b;
+    document.getElementById("skyCap").classList.add("on");
+    AUD.sfx(first?"open":"swap");
+    if (first && skyDone) setTimeout(function(){ AUD.chordTo("dawn"); }, 600);
+  }
+  function resetSkyAll(){
+    skyFound={}; skySave(); skyPaint();
+    document.getElementById("skyCap").classList.remove("on");
+    AUD.sfx("swap");
+  }
+
   function resize(){
     // a resize can land before the scene is built (fonts still loading)
     if (!R || !cam) return;
     var w=innerWidth,h=innerHeight,a=w/h;
-    R.setPixelRatio(Math.min(devicePixelRatio, w<700?1.6:2));
+    // render above CSS resolution where the device can take it - this is the
+    // single biggest difference on a retina phone and on a 4K display
+    R.setPixelRatio(Math.min(devicePixelRatio, w<700?2:(w>2200?3:2.5)));
     R.setSize(w,h);
     R.shadowMap.enabled = w>=700;
     R.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1621,6 +1867,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     D3   = a<.8 ? 17 : (a<1.2 ? 14.8 : 13.2);
     D4   = a<.8 ? 15 : (a<1.2 ? 13 : 11.5);
     D5   = a<.8 ? 15 : (a<1.2 ? 12.5 : 11);
+    // a tall phone is narrow: pull right back or the ears and tail fall off the sides
+    D6   = a<.8 ? 34 : (a<1.2 ? 22 : 17);
     cam.updateProjectionMatrix();
   }
   var D2=15.4, D3=13.2, D4=11.5, D5=11, envFly=0, flagUp=0;
@@ -1630,7 +1878,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   /* ══════ scene switching ═══════════════════════════════ */
   var flash=document.getElementById("flash");
-  var NAMES=["Six Plans","The Decider","Receipts","The Quiz","Your Turn"];
+  var NAMES=["Six Plans","The Decider","Receipts","The Quiz","Your Turn","The Night Sky"];
   var nav=document.getElementById("nav");
   NAMES.forEach(function(nm,i){
     var b=document.createElement("button");
@@ -1652,15 +1900,20 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       if (S3) S3.visible = i===2;
       if (S4) S4.visible = i===3;
       if (S5) S5.visible = i===4;
+      if (S6) S6.visible = i===5;
+      document.getElementById("night").classList.toggle("on", i===5);
       document.getElementById("hud1").classList.toggle("hide", i!==0);
       document.getElementById("hud2").classList.toggle("hide", i!==1);
       document.getElementById("hud3").classList.toggle("hide", i!==2);
       document.getElementById("hud4").classList.toggle("hide", i!==3);
       document.getElementById("hud5").classList.toggle("hide", i!==4);
+      document.getElementById("hud6").classList.toggle("hide", i!==5);
+      if (i===5){ skyPaint(); skyPan=0; skyVel=0; }
       document.getElementById("pips").classList.toggle("hide", i!==0);
       shut();
       for (var k=0;k<nav.children.length;k++)
         nav.children[k].setAttribute("aria-current", k===i ? "true" : "false");
+      try{ nav.children[i].scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"}); }catch(e){}
       hov=-1; document.getElementById("tag").classList.remove("on");
       flash.classList.remove("on");
       showBack();
@@ -1690,6 +1943,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if(!drag) return;
     var dx=e.clientX-lastX; moved+=Math.abs(dx);
     if (cur===0){ vYaw=dx*.005; yaw+=vYaw; }
+    // the sky panel tells her to drag, so dragging has to do something
+    else if (cur===5){ skyVel=-dx*.012; skyPan=Math.max(-4.2,Math.min(4.2,skyPan+skyVel)); }
     lastX=e.clientX;
   },{passive:true});
   addEventListener("pointerup",function(e){
@@ -1713,6 +1968,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
         } else if (cur===2){
           var h3=ray.intersectObject(printer,true);
           if (h3.length){ doPrint(); break; }
+        } else if (cur===5){
+          var h6=ray.intersectObjects(skyHits,false);
+          if (h6.length){ skyTap(h6[0].object.userData.i); break; }
         }
       }
     }
@@ -2185,6 +2443,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   document.getElementById("resetIsland").addEventListener("click",resetIsland);
   document.getElementById("resetReceipts").addEventListener("click",resetReceipts);
   document.getElementById("resetDecider").addEventListener("click",resetDecider);
+  document.getElementById("resetSky").addEventListener("click",resetSkyAll);
 
   /* ══════ extra lines for a second look ════════════════
      Reopening a found object shows one of these instead of nothing new. */
@@ -3232,6 +3491,23 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       } else if (envelope) envelope.material.opacity=0;
       flagUp += ((envFly>0?1:0) - flagUp)*.06;
       camWant.set(0,3.4,D5); lookWant.set(0,1.9,0);
+
+    } else if (cur===5){
+      for (var sk=0;sk<skySprites.length;sk++){
+        var st=skySprites[sk], su=st.userData;
+        var tw = reduce ? 1 : 1+Math.sin(t*(su.found?1.3:2.1)+su.tw)*(su.found?.07:.16);
+        st.scale.setScalar(su.base*tw);
+      }
+      if (!drag){ skyVel*=.90; skyPan=Math.max(-4.2,Math.min(4.2,skyPan+skyVel)); }
+      if (S6){
+        S6.rotation.y = reduce ? 0 : Math.sin(t*.05)*.02;
+        // the far field slides more than the constellation: it reads as depth
+        for (var fc=0;fc<S6.children.length;fc++){
+          var ch=S6.children[fc];
+          if (ch.userData && ch.userData.field) ch.position.x = skyPan*1.9;
+        }
+      }
+      camWant.set(skyPan,7.4,D6); lookWant.set(skyPan*.72,7.2,0);
 
     } else if (cur===3){
       if (orb){
