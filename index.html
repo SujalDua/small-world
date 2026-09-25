@@ -524,6 +524,59 @@
   .back{padding:7px 10px;font-size:11px;gap:4px}
   .eq{display:none}
 }
+
+/* ── borrowed words ── */
+#vrs{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:24px;
+    opacity:0;visibility:hidden;transition:opacity .5s ease,visibility .5s;overflow-y:auto;
+    background:radial-gradient(75% 65% at 50% 45%,rgba(44,34,78,.90),rgba(12,10,26,.96))}
+#vrs.on{opacity:1;visibility:visible}
+.vcard{max-width:480px;background:linear-gradient(174deg,#FDFAF4 0%,#F7EFE4 100%);
+    border:1px solid rgba(233,116,81,.16)}
+#vrsT{margin:0;font-family:var(--fd);font-weight:500;font-style:italic;
+    font-size:clamp(1.05rem,3.6vw,1.34rem);line-height:1.52;letter-spacing:-.005em;
+    color:var(--ink);border:0;padding:0;
+    opacity:0;transform:translateY(7px);transition:opacity .55s ease,transform .55s ease}
+#vrsT.in{opacity:1;transform:none}
+#vrsT .ur{display:block;font-style:normal;font-size:.94em;color:var(--ink2);margin:0 0 9px}
+.vrsWho{margin:15px 0 0;font-family:var(--fd);font-weight:700;font-size:11px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--coral)}
+.vrsMine{margin:17px 0 0;padding:15px 0 0;border-top:1px solid rgba(30,27,58,.12);
+    font-size:15px;line-height:1.66;color:var(--ink2)}
+
+/* ══ finishing pass ══════════════════════════════════════ */
+
+/* keyboard users could not see where they were at all */
+*:focus-visible{outline:2px solid var(--coral);outline-offset:3px;border-radius:8px}
+button{-webkit-tap-highlight-color:transparent}
+.nav button:active,.okbtn:active,.helpbtn:active,.snd:active,
+.panelreset:active,.qnext:active,.tinylink:active{transform:translateY(1px)}
+
+/* the opening copy sits on top of a moving 3D scene; give it something to
+   sit on so the thin weights stay readable whatever is behind them */
+#intro .b{position:relative;z-index:1}
+#intro .b::before{content:"";position:absolute;inset:-34px -40px;z-index:-1;
+  background:radial-gradient(58% 52% at 50% 46%,rgba(14,11,34,.66),rgba(14,11,34,0) 74%);
+  pointer-events:none}
+.greet,.greet2{max-width:36ch;margin-left:auto;margin-right:auto}
+
+/* the source line on a borrowed verse */
+#vrs .ndate{font-family:var(--fd);font-weight:700;font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--coral);margin:0 0 15px}
+
+/* a little more depth under the floating cards */
+.hcard{box-shadow:0 1px 0 rgba(255,255,255,.72) inset,0 34px 80px rgba(16,12,40,.5)}
+.vcard{box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 36px 86px rgba(16,12,40,.55)}
+
+/* the mood grid reads better when the odd one out is clearly deliberate */
+.moodgrid button:last-child:nth-child(odd){grid-column:1 / -1}
+
+/* six icons plus a name plus Back will not fit 320px - drop the name there */
+@media (max-width:372px){
+  .tr{gap:5px}
+  .helpbtn,.snd{width:29px;height:29px;font-size:12px}
+  .back{padding:6px 9px;font-size:10.5px}
+  body.hasback .brand{display:none}
+}
 </style>
 
 <div id="sky" aria-hidden="true"></div>
@@ -545,6 +598,7 @@
     <button class="helpbtn" id="cake" type="button" aria-label="The third of February">&#127874;</button>
     <button class="helpbtn" id="daily" type="button" aria-label="Today&rsquo;s note">&#10022;</button>
     <button class="helpbtn" id="why" type="button" aria-label="Reasons">&#9825;</button>
+    <button class="helpbtn" id="verse" type="button" aria-label="Borrowed words">&#9789;</button>
     <button class="helpbtn" id="help" type="button" aria-label="How this works">?</button>
     <button class="snd" id="snd" type="button" aria-label="Sound settings">&#128266;</button>
     <div class="volpop" id="volpop">
@@ -681,6 +735,19 @@
   </div>
 </div>
 
+
+<div id="vrs" role="dialog" aria-modal="true" aria-labelledby="vrsT">
+  <div class="hcard vcard">
+    <p class="ndate" id="vrsK"></p>
+    <blockquote id="vrsT"></blockquote>
+    <p class="vrsWho" id="vrsW"></p>
+    <p class="vrsMine" id="vrsM"></p>
+    <div class="row2">
+      <button class="okbtn" id="vrsMore" type="button">Another</button>
+      <button class="okbtn ghost" id="vrsOk" type="button">Close</button>
+    </div>
+  </div>
+</div>
 
 <div id="rsn" role="dialog" aria-modal="true" aria-labelledby="rsWhy">
   <div class="hcard">
@@ -831,11 +898,51 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       { bass:87.31,  pad:[174.61,220.00,261.63,349.23],
         tune:[[0.3,698.46,.095],[1.9,587.33,.08],[3.4,523.25,.07],[4.9,440.00,.055]] }
     ];
+
+    /* Em9 - Cmaj7 - Am7 - Bm7. Minor, unhurried, the sound of rain
+       against a window at four in the afternoon. */
+    var MONSOON=[
+      { bass:82.41,  pad:[164.81,196.00,246.94,369.99],
+        tune:[[0.4,493.88,.075],[2.6,587.33,.06],[5.0,659.25,.05],[7.8,493.88,.045]] },
+      { bass:65.41,  pad:[164.81,196.00,246.94],
+        tune:[[0.5,523.25,.07],[3.0,659.25,.055],[6.2,493.88,.05]] },
+      { bass:110.00, pad:[261.63,329.63,392.00],
+        tune:[[0.3,440.00,.07],[2.8,523.25,.055],[6.0,392.00,.05]] },
+      { bass:123.47, pad:[293.66,369.99,440.00],
+        tune:[[0.6,587.33,.065],[3.4,493.88,.05],[6.6,440.00,.045]] }
+    ];
+    /* Dm9 - G7 - Cmaj9 - A7. The lazy seventh-chord shuffle, for studying
+       or for not studying. */
+    var LOFI=[
+      { bass:73.42,  pad:[174.61,220.00,261.63,329.63],
+        tune:[[0.4,587.33,.07],[2.2,523.25,.055],[4.6,440.00,.05],[6.8,349.23,.045]] },
+      { bass:98.00,  pad:[246.94,293.66,349.23],
+        tune:[[0.5,493.88,.065],[2.6,587.33,.05],[5.4,392.00,.05]] },
+      { bass:65.41,  pad:[164.81,196.00,246.94,293.66],
+        tune:[[0.3,523.25,.07],[3.0,659.25,.05],[6.0,587.33,.045]] },
+      { bass:110.00, pad:[277.18,329.63,392.00],
+        tune:[[0.6,440.00,.06],[3.2,554.37,.05],[6.2,329.63,.045]] }
+    ];
+    /* A held tanpura-ish drone on C and G, with the line moving through the
+       notes of Yaman. Closer to home than a maj7 ever gets. */
+    var RAGA=[
+      { bass:65.41, pad:[130.81,196.00,261.63],
+        tune:[[0.4,261.63,.07],[1.8,293.66,.06],[3.2,329.63,.06],[4.8,369.99,.055],[6.6,392.00,.05],[8.4,440.00,.045]] },
+      { bass:65.41, pad:[130.81,196.00,261.63],
+        tune:[[0.4,493.88,.065],[2.0,440.00,.055],[3.8,392.00,.05],[5.6,369.99,.05],[7.6,329.63,.045]] },
+      { bass:65.41, pad:[130.81,196.00,261.63],
+        tune:[[0.5,523.25,.06],[2.4,493.88,.05],[4.4,440.00,.05],[7.0,392.00,.045]] },
+      { bass:65.41, pad:[130.81,196.00,261.63],
+        tune:[[0.6,329.63,.06],[2.8,293.66,.05],[5.2,261.63,.05],[8.0,196.00,.045]] }
+    ];
     var MOODS=[
-      { id:"warm",   name:"Warm",       prog:DUSK,   bar:8.0  },
-      { id:"dreamy", name:"Dreamy",     prog:DREAMY, bar:11.0 },
-      { id:"night",  name:"Late night", prog:NIGHT,  bar:9.5  },
-      { id:"bright", name:"Bright",     prog:BRIGHT, bar:6.5  }
+      { id:"warm",    name:"Warm",       prog:DUSK,    bar:8.0  },
+      { id:"dreamy",  name:"Dreamy",     prog:DREAMY,  bar:11.0 },
+      { id:"night",   name:"Late night", prog:NIGHT,   bar:9.5  },
+      { id:"bright",  name:"Bright",     prog:BRIGHT,  bar:6.5  },
+      { id:"monsoon", name:"Monsoon",    prog:MONSOON, bar:11.0 },
+      { id:"lofi",    name:"Lo-fi",      prog:LOFI,    bar:9.0  },
+      { id:"raga",    name:"Raga",       prog:RAGA,    bar:10.5 }
     ];
     var moodIx=0, dawnOn=false;
     try{
@@ -2091,7 +2198,12 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   var backBtn=document.getElementById("back"), histN=0;
   function finOpen(){ return document.getElementById("fin").classList.contains("on"); }
   function showBack(){
-    backBtn.classList.toggle("show", cardOpen() || finOpen() || cur!==0);
+    var on = cardOpen() || finOpen() || cur!==0;
+    backBtn.classList.toggle("show", on);
+    // on a 320px screen the name and "Back" cannot both fit beside six icons;
+    // the button is the one that has to win. Driven here rather than with :has
+    // so it behaves the same on older Safari.
+    document.body.classList.toggle("hasback", on);
   }
   function pushHist(){ try{ history.pushState({d:++histN},""); }catch(e){} }
   function goBack(){
@@ -2544,6 +2656,83 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   });
   rsn.addEventListener("click",function(e){ if(e.target===rsn) hideReasons(); });
 
+
+  /* ══════ borrowed words ════════════════════════════════
+     Other people got there first, so some of this is theirs. Everything
+     quoted is out of copyright - Ghalib died in 1869, Tagore in 1941,
+     Browning in 1861 - and the Ghalib renderings are my own plain English,
+     because the good published translations are certainly not mine to take.
+     Under each one, the reason it is in here. */
+  var VERSE = [
+    { k:"Mirza Ghalib, around 1840",
+      ur:"ishq par zor nahīñ hai ye vo ātish &lsquo;ġhālib&rsquo;<br>ki lagā.e na lage aur bujhā.e na bane",
+      t:"Love is not ours to command. It is the one fire<br>that will not be lit to order, and will not be put out.",
+      w:"Ghalib",
+      m:"Nobody decided this. It arrived already finished, in the middle of an ordinary week, and has declined every instruction since." },
+    { k:"Mirza Ghalib",
+      ur:"hazāroñ ḳhvāhisheñ aisī ki har ḳhvāhish pe dam nikle<br>bahut nikle mire armān lekin phir bhī kam nikle",
+      t:"A thousand wants, each one worth dying of.<br>Many of mine came true. It was still not enough.",
+      w:"Ghalib",
+      m:"You wrote down exactly two. I intend to be greedy on your behalf for the rest." },
+    { k:"Mirza Ghalib",
+      ur:"dil-e-nādāñ tujhe huā kyā hai<br>āḳhir is dard kī davā kyā hai",
+      t:"Foolish heart, what has happened to you?<br>What, in the end, is the cure for this ache?",
+      w:"Ghalib",
+      m:"There isn&rsquo;t one. I checked. I am not looking very hard." },
+    { k:"The Gardener, 1913",
+      t:"Hands cling to hands and eyes linger on eyes:<br>thus begins the record of our hearts.",
+      w:"Rabindranath Tagore",
+      m:"Ours began with four thousand two hundred and fifty-five videos and a good morning at 5:12. The record is the record." },
+    { k:"The Gardener, 1913",
+      t:"You are the evening cloud floating in the sky of my dreams.<br>I paint you and fashion you ever with my love longings.",
+      w:"Rabindranath Tagore",
+      m:"Except I do not have to. You keep sending the photographs yourself, and they are better than anything I would have invented." },
+    { k:"Sonnets from the Portuguese, 1850",
+      t:"I love thee to the level of everyday&rsquo;s<br>Most quiet need, by sun and candlelight.",
+      w:"Elizabeth Barrett Browning",
+      m:"This is the part nobody writes songs about. Water reminders. Dark circles. Did you eat. That is the whole of it, really." },
+    { k:"Sonnets from the Portuguese, 1850",
+      t:"I love thee with the passion put to use<br>In my old griefs, and with my childhood&rsquo;s faith.",
+      w:"Elizabeth Barrett Browning",
+      m:"You said you had the best childhood and that you wanted to delete 2022, in the same minute. Both were true. I would like to be in charge of the next twenty years." },
+    { k:"Sonnet 116",
+      t:"Love is not love<br>Which alters when it alteration finds.",
+      w:"William Shakespeare",
+      m:"Four hundred years and still the clearest thing anybody has said on the subject. Nothing about you has altered what I think, including the things you are certain would." },
+    { k:"written here, not borrowed",
+      t:"Somebody in Delhi is awake at 5:12<br>because the day will not start without her in it.",
+      w:"mine",
+      m:"That one is not a quotation. I just wanted it written down somewhere permanent." },
+    { k:"written here, not borrowed",
+      t:"The mirror gets a vote.<br>It is outvoted.",
+      w:"mine",
+      m:"By me, by everyone who has met you, and by five photographs you sent yourself and then apologised for." }
+  ];
+
+  var vrs=document.getElementById("vrs"), vBag=[];
+  function vDraw(){
+    if (!vBag.length){ for (var i=0;i<VERSE.length;i++) vBag.push(i);
+      for (var j=vBag.length-1;j>0;j--){ var r=Math.floor(Math.random()*(j+1));
+        var t=vBag[j]; vBag[j]=vBag[r]; vBag[r]=t; } }
+    var v=VERSE[vBag.shift()];
+    var el=document.getElementById("vrsT");
+    el.classList.remove("in");
+    setTimeout(function(){
+      el.innerHTML = (v.ur?'<span class="ur">'+v.ur+'</span>':'') + v.t;
+      document.getElementById("vrsK").textContent=v.k;
+      document.getElementById("vrsW").textContent=v.w==="mine"?"":v.w;
+      document.getElementById("vrsM").innerHTML=v.m;
+      el.classList.add("in");
+    },170);
+    AUD.sfx("open");
+  }
+  function showVerse(){ vrs.classList.add("on"); vDraw(); }
+  function hideVerse(){ vrs.classList.remove("on"); }
+  document.getElementById("verse").addEventListener("click",showVerse);
+  document.getElementById("vrsMore").addEventListener("click",vDraw);
+  document.getElementById("vrsOk").addEventListener("click",hideVerse);
+  vrs.addEventListener("click",function(e){ if(e.target===vrs) hideVerse(); });
+
   /* ══════ the letter ════════════════════════════════════ */
   var ltr=document.getElementById("ltr"), ltrBody=document.getElementById("ltrBody"), ltrT=null;
   function typeLetter(){
@@ -2574,6 +2763,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   document.addEventListener("keydown",function(e){
     if (e.key!=="Escape") return;
     if (lb.classList.contains("on")) hideLb();
+    else if (vrs.classList.contains("on")) hideVerse();
     else if (ltr.classList.contains("on")) hideLetter();
     else if (rsn.classList.contains("on")) hideReasons();
   });
