@@ -1255,6 +1255,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
                 if ("outputColorSpace" in R) R.outputColorSpace = THREE.SRGBColorSpace;
                 R.toneMapping = THREE.ACESFilmicToneMapping;
                 R.toneMappingExposure = 1.22;
+                // NB: post-processing is set up in build(), not here - the shader
+                // source lives in a `var` further down the file and is still
+                // undefined at this point.
               }
               catch(e){ hasGL=false; } }
 
@@ -1268,7 +1271,40 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   var yaw=Math.random()*6.2832, vYaw=0, drag=false, moved=0, lastX=0, hov=-1;
   var CAMD=17.8, cur=0;
 
-  function mat(hex){ return new THREE.MeshLambertMaterial({color:new THREE.Color(hex)}); }
+  var ENVMAP=null;
+  // Lambert has no specular term at all, which is the single reason everything
+  // read as flat plastic. Standard + an environment map gives every surface a
+  // roughness response and a little bounce light.
+  function mat(hex){
+    return new THREE.MeshStandardMaterial({
+      color:new THREE.Color(hex), roughness:.68, metalness:.03,
+      envMap:ENVMAP, envMapIntensity:.85 });
+  }
+  function buildEnv(){
+    // a procedural sky, pre-filtered into a proper IBL probe - no HDR file to ship
+    var pm=new THREE.PMREMGenerator(R);
+    var s=new THREE.Scene();
+    var geo=new THREE.SphereGeometry(60,40,28);
+    var pos=geo.attributes.position, cols=[];
+    var top=new THREE.Color(0x8FA6F2), hor=new THREE.Color(0xF7DCC2), bot=new THREE.Color(0x241F4A), c=new THREE.Color();
+    for (var i=0;i<pos.count;i++){
+      var y=pos.getY(i)/60;
+      if (y>0) c.copy(hor).lerp(top, Math.min(1,y*1.25));
+      else     c.copy(hor).lerp(bot, Math.min(1,-y*1.45));
+      cols.push(c.r,c.g,c.b);
+    }
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(cols,3));
+    s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({vertexColors:true, side:THREE.BackSide})));
+    var sun=new THREE.Mesh(new THREE.SphereGeometry(7,20,14),
+      new THREE.MeshBasicMaterial({color:0xFFF2DA}));
+    sun.position.set(-20,30,16); s.add(sun);
+    var fill=new THREE.Mesh(new THREE.SphereGeometry(11,16,12),
+      new THREE.MeshBasicMaterial({color:0x7F8FE0}));
+    fill.position.set(26,6,-22); s.add(fill);
+    var tex=pm.fromScene(s,.03).texture;
+    pm.dispose(); geo.dispose();
+    return tex;
+  }
   function box(w,h,d,c){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c)); }
   function cyl(rt,rb,h,c,seg){ return new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||18),mat(c)); }
   function cone(r,h,c,seg){ return new THREE.Mesh(new THREE.ConeGeometry(r,h,seg||16),mat(c)); }
@@ -1502,15 +1538,151 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     }
   }
 
+
+  /* ══════ post-processing ═══════════════════════════════
+     The scene is rendered into a half-float target, the bright parts are
+     extracted and blurred, then everything is tone-mapped and written to the
+     canvas in one composite. Alpha is carried through so the CSS sky behind
+     the canvas still shows, and so the glow spills over it.
+     If anything here fails we fall back to rendering straight to the canvas. */
+  var PP=null;
+  var VS = "varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }";
+
+  function ppMat(fs, uni){
+    return new THREE.ShaderMaterial({ vertexShader:VS, fragmentShader:fs, uniforms:uni,
+      depthTest:false, depthWrite:false, transparent:false });
+  }
+  function initPP(){
+    try{
+      if (!R || !R.capabilities.isWebGL2) return null;
+      var o={};
+      var opt={ minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter,
+                type:THREE.HalfFloatType, depthBuffer:true };
+      o.scene = new THREE.WebGLRenderTarget(2,2,
+        { minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter,
+          type:THREE.HalfFloatType, samples:4 });
+      o.a = new THREE.WebGLRenderTarget(2,2,opt); o.a.depthBuffer=false;
+      o.b = new THREE.WebGLRenderTarget(2,2,opt); o.b.depthBuffer=false;
+      o.cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+      o.geo = new THREE.PlaneGeometry(2,2);
+
+      o.bright = ppMat(
+        "uniform sampler2D tD; uniform float thr, knee; varying vec2 vUv;\n"+
+        "void main(){ vec4 c=texture2D(tD,vUv);\n"+
+        "  float l=dot(c.rgb,vec3(.2126,.7152,.0722));\n"+
+        "  float w=smoothstep(thr, thr+knee, l);\n"+
+        "  gl_FragColor=vec4(c.rgb*w, 1.0); }",
+        { tD:{value:null}, thr:{value:0.95}, knee:{value:0.45} });
+
+      o.blur = ppMat(
+        "uniform sampler2D tD; uniform vec2 dir; varying vec2 vUv;\n"+
+        "void main(){ vec3 s=vec3(0.0);\n"+
+        "  s+=texture2D(tD,vUv-dir*4.0).rgb*0.0162;\n"+
+        "  s+=texture2D(tD,vUv-dir*3.0).rgb*0.0540;\n"+
+        "  s+=texture2D(tD,vUv-dir*2.0).rgb*0.1216;\n"+
+        "  s+=texture2D(tD,vUv-dir*1.0).rgb*0.1946;\n"+
+        "  s+=texture2D(tD,vUv).rgb*0.2270;\n"+
+        "  s+=texture2D(tD,vUv+dir*1.0).rgb*0.1946;\n"+
+        "  s+=texture2D(tD,vUv+dir*2.0).rgb*0.1216;\n"+
+        "  s+=texture2D(tD,vUv+dir*3.0).rgb*0.0540;\n"+
+        "  s+=texture2D(tD,vUv+dir*4.0).rgb*0.0162;\n"+
+        "  gl_FragColor=vec4(s,1.0); }",
+        { tD:{value:null}, dir:{value:new THREE.Vector2()} });
+
+      o.comp = ppMat(
+        "uniform sampler2D tS, tB; uniform float amount, exposure, vig; varying vec2 vUv;\n"+
+        "vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }\n"+
+        "void main(){ vec4 s=texture2D(tS,vUv); vec3 b=texture2D(tB,vUv).rgb*amount;\n"+
+        "  vec3 c=(s.rgb+b)*exposure;\n"+
+        "  vec2 q=vUv-0.5; c*=1.0-vig*dot(q,q);\n"+       // a little falloff at the corners
+        "  c=aces(c);\n"+
+        "  c=pow(max(c,0.0), vec3(1.0/2.2));\n"+          // linear -> sRGB
+        "  float bl=dot(b,vec3(.2126,.7152,.0722));\n"+
+        "  gl_FragColor=vec4(c, clamp(s.a+bl,0.0,1.0)); }",
+        { tS:{value:null}, tB:{value:null}, amount:{value:0.62},
+          exposure:{value:1.10}, vig:{value:0.26} });
+
+      o.quad = new THREE.Mesh(o.geo, o.comp);
+      o.quad.frustumCulled=false;
+      o.qs = new THREE.Scene(); o.qs.add(o.quad);
+      return o;
+    }catch(e){ return null; }
+  }
+  function ppResize(w,h,pr){
+    if (!PP) return;
+    var W=Math.max(2,Math.floor(w*pr)), H=Math.max(2,Math.floor(h*pr));
+    PP.scene.setSize(W,H);
+    var bw=Math.max(2,Math.floor(W/4)), bh=Math.max(2,Math.floor(H/4));
+    PP.a.setSize(bw,bh); PP.b.setSize(bw,bh);
+    PP.bw=bw; PP.bh=bh;
+  }
+  function drawQuad(mat,target){
+    PP.quad.material=mat;
+    R.setRenderTarget(target||null);
+    R.render(PP.qs, PP.cam);
+  }
+  var ppFrames=0, ppTime=0, ppJudged=false, ppLast=0, ppAvg=0;
+  function ppDropIfSlow(){
+    if (ppJudged || !PP) return;
+    var now=(performance&&performance.now)?performance.now():Date.now();
+    var d=(now-ppLast)/1000; ppLast=now;
+    ppFrames++;
+    if (ppFrames<25) return;              // let it warm up and compile shaders
+    if (d>0 && d<1) ppTime+=d;            // ignore tab-switch gaps
+    if (ppFrames<85) return;
+    ppJudged=true;
+    var avg=ppAvg=ppTime/(ppFrames-25);
+    if (avg>0.030){                       // under ~33fps: not worth the glow
+      try{ PP.scene.dispose(); PP.a.dispose(); PP.b.dispose(); PP.geo.dispose(); }catch(e){}
+      PP=null;
+      R.toneMapping=THREE.ACESFilmicToneMapping;
+      R.toneMappingExposure=1.22;
+      R.setRenderTarget(null);
+    }
+  }
+  function renderFrame(){
+    if (!PP){
+      R.render(scene,cam);
+      if (catScene && catOn){ R.autoClear=false; R.clearDepth(); R.render(catScene,catCam); R.autoClear=true; }
+      return;
+    }
+    // 1. the world, un-tone-mapped, into a multisampled half-float target
+    R.setRenderTarget(PP.scene);
+    R.clear();
+    R.render(scene,cam);
+    if (catScene && catOn){ R.autoClear=false; R.clearDepth(); R.render(catScene,catCam); R.autoClear=true; }
+    // 2. pull out what is bright
+    PP.bright.uniforms.tD.value = PP.scene.texture;
+    drawQuad(PP.bright, PP.a);
+    // 3. blur it, twice, separably
+    for (var i=0;i<2;i++){
+      PP.blur.uniforms.tD.value = PP.a.texture;
+      PP.blur.uniforms.dir.value.set((1.4+i)/PP.bw, 0);
+      drawQuad(PP.blur, PP.b);
+      PP.blur.uniforms.tD.value = PP.b.texture;
+      PP.blur.uniforms.dir.value.set(0, (1.4+i)/PP.bh);
+      drawQuad(PP.blur, PP.a);
+    }
+    // 4. combine, tone-map, write to the canvas
+    PP.comp.uniforms.tS.value = PP.scene.texture;
+    PP.comp.uniforms.tB.value = PP.a.texture;
+    drawQuad(PP.comp, null);
+  }
+
   /* ══════ build ═════════════════════════════════════════ */
   function build(){
+    PP = initPP();
+    if (PP) R.toneMapping = THREE.NoToneMapping;   // the composite tone-maps instead
     scene=new THREE.Scene();
+    ENVMAP=buildEnv();
+    scene.environment=ENVMAP;
     cam=new THREE.PerspectiveCamera(42,1,.1,140);
     ray=new THREE.Raycaster();
-    hemi=new THREE.HemisphereLight(0xBFA8E8,0x4A3F73,.95); scene.add(hemi);
-    lamp=new THREE.DirectionalLight(0xFFE8C8,1.15);
+    hemi=new THREE.HemisphereLight(0xBFA8E8,0x4A3F73,.55); scene.add(hemi);
+    lamp=new THREE.DirectionalLight(0xFFE8C8,2.1);
     lamp.position.set(6,11,5); lamp.castShadow=true;
-    lamp.shadow.mapSize.set(1024,1024);
+    lamp.shadow.mapSize.set(2048,2048);
+    lamp.shadow.normalBias=.02; lamp.shadow.radius=2.2;
     lamp.shadow.camera.left=-14; lamp.shadow.camera.right=14;
     lamp.shadow.camera.top=14; lamp.shadow.camera.bottom=-14;
     lamp.shadow.camera.far=44; lamp.shadow.bias=-.0012;
@@ -1710,8 +1882,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var S=128, c=document.createElement("canvas"); c.width=c.height=S;
     var x=c.getContext("2d"), g=x.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
     // a hard little core with a fast falloff - a wide gradient reads as fog
-    g.addColorStop(0,   "rgba(255,255,255,1)");
-    g.addColorStop(.06, "rgba(255,255,255,.96)");
+    g.addColorStop(0,   "rgba(255,255,255,.80)");
+    g.addColorStop(.06, "rgba(255,255,255,.74)");
     g.addColorStop(.14, warm?"rgba(255,226,172,.72)":"rgba(206,222,255,.62)");
     g.addColorStop(.30, warm?"rgba(243,166,104,.20)":"rgba(138,168,255,.16)");
     g.addColorStop(.62, warm?"rgba(233,116,81,.05)":"rgba(110,140,230,.04)");
@@ -1749,14 +1921,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     field.userData.field=true;
     g.add(field);
 
-    /* a wash of colour behind it all, so the black is never flat */
-    var nb=new THREE.Mesh(new THREE.PlaneGeometry(150,90),
-      new THREE.MeshBasicMaterial({ map:glowTex(false), transparent:true, opacity:.15,
-        depthWrite:false, blending:THREE.AdditiveBlending, color:new THREE.Color(0x6F6BD8) }));
-    nb.position.set(-6,8,-40); g.add(nb);
-    var nb2=nb.clone(); nb2.material=nb.material.clone();
-    nb2.material.color=new THREE.Color(0xE97451); nb2.material.opacity=.1;
-    nb2.position.set(14,-2,-38); nb2.scale.setScalar(.7); g.add(nb2);
+    // (a pair of nebula planes lived here; with bloom they blew out into flat
+    //  mottled blobs, and the field of stars reads better without them)
 
     /* the fourteen */
     skyHits=[]; skySprites=[];
@@ -1859,6 +2025,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     // single biggest difference on a retina phone and on a 4K display
     R.setPixelRatio(Math.min(devicePixelRatio, w<700?2:(w>2200?3:2.5)));
     R.setSize(w,h);
+    ppResize(w,h,R.getPixelRatio());
     R.shadowMap.enabled = w>=700;
     R.shadowMap.type = THREE.PCFSoftShadowMap;
     cam.aspect=a;
@@ -3590,8 +3757,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     cam.lookAt(lookNow);
 
     stepCats(dt,t);
-    R.render(scene,cam);
-    if (catScene && catOn){ R.autoClear=false; R.clearDepth(); R.render(catScene,catCam); R.autoClear=true; }
+    ppDropIfSlow();
+    renderFrame();
   }
 
   function boot(){
