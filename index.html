@@ -66,7 +66,7 @@
 <script>
 (function(){
 "use strict";
-var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.6bb4aacc37.bin", KEYNAME="tofu.k";
+var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.a45f3ca746.bin", KEYNAME="tofu.k";
 var $=function(id){ return document.getElementById(id); };
 // a sky of tiny stars, drawn with one element
 (function(){
@@ -115,7 +115,10 @@ function build(ab){
   return html;
 }
 function enter(html){
-  document.open(); document.write(html); document.close();
+  // never swap documents mid-load: a returning visit unlocks from cache so fast that
+  // document.open() would otherwise abort this page's own load
+  var go=function(){ document.open(); document.write(html); document.close(); };
+  if (document.readyState==="complete") go(); else window.addEventListener("load",go,{once:true});
 }
 function tryKey(key, remember){
   return unseal(key).then(function(ab){
