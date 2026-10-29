@@ -1,0 +1,31 @@
+README.md
+  s_69ffc2c6881e5d::t_52d494678b779c 3-5
+assets/fonts/fonts.css
+  s_69ffc2c6881e5d::t_041d92d25e8ddd 1-84
+assets/three.min.js
+  s_69ffc2c6881e5d::t_ae461251e5b506 1-7
+audio.js
+  s_69ffc2c6881e5d::t_1b557e515e860e 1-337
+index.html
+  s_69ffc2c6881e5d::t_045c520b6cbc95 1-3,5-13,15-49,51-65,68-78,80-84,86-88,90-93,95-125,127-148,150,153,156-157
+sky.js
+  s_69ffc2c6881e5d::t_f57c634ac4c671 1-231
+style.css
+  s_69ffc2c6881e5d::t_b1404826eb9967 1-588
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f1b148cb20f572868b1619c047502c3fbaf9294f",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
