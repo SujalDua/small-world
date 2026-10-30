@@ -4,7 +4,7 @@
 
 /* ── 1. headline reveals ─────────────────────────────────────────────── */
 .mo-h .mo-w{display:inline-block;white-space:nowrap;vertical-align:top}
-.mo-h.mo-ready:not(.mo-in) .mo-w{opacity:0;transform:translate3d(0,.6em,0);filter:blur(6px)}
+.mo-h.mo-ready:not(.mo-in) .mo-w{opacity:0;transform:translate3d(0,min(.6em,28px),0);filter:blur(6px)}
 .mo-h.mo-ready .mo-w{
   transition:opacity .85s var(--ease),transform 1.15s var(--ease),filter .95s var(--ease);
   transition-delay:calc(var(--mo-i,0) * 55ms)}
@@ -17,7 +17,7 @@
 .mo-h.mo-done .mo-em{transition:none}
 
 /* ── 2. images ───────────────────────────────────────────────────────── */
-.ph.mo-ph{--mo-r:22px}
+.ph.mo-ph,.ph.mo-px{--mo-r:22px}
 .ph.mo-ph.mo-ready:not(.mo-in){clip-path:inset(10% 10% 10% 10% round var(--mo-r))}
 /* wipe to the frame, then a little past it so the soft shadow eases in instead of popping */
 .ph.mo-ph.mo-ready.mo-in{animation:mo-wipe 1.35s both}
@@ -25,13 +25,39 @@
   0%{clip-path:inset(10% 10% 10% 10% round var(--mo-r));animation-timing-function:cubic-bezier(.22,.7,.18,1)}
   78%{clip-path:inset(0px 0px 0px 0px round var(--mo-r));animation-timing-function:cubic-bezier(.4,0,.6,1)}
   100%{clip-path:inset(-60px -60px -60px -60px round calc(var(--mo-r) + 60px))}}
-.ph.mo-ph.mo-done{clip-path:none;animation:none}
+/* landed: no animation and no clip left for the compositor */
+.ph.mo-ph.mo-ready.mo-in.mo-done{animation:none;clip-path:none}
 .ph.mo-ph.mo-ready:not(.mo-in)>img,.ph.mo-ph.mo-ready:not(.mo-in)>video{transform:scale(1.1)}
 .ph.mo-ph.mo-ready>img,.ph.mo-ph.mo-ready>video{
   transition:opacity 1s var(--ease),transform 1.7s cubic-bezier(.16,.84,.24,1)}
+/* CSS-columns gallery (.mo-nc tiles). WebKit stops painting every column but the first while
+   an accelerated (opacity/transform/filter) animation runs: anywhere on the page unless the
+   column box has its own layer, and inside the columns no matter what. So the column box is
+   layered, and its tiles reveal with the clip-path wipe alone (painted, never composited):
+   no photo fade, no settle, no hover zoom, no .rv fade on their wrapper (motion.js drops it). */
+.mo-ncol{will-change:transform}
+.ph.mo-ph.mo-nc>img,.ph.mo-ph.mo-nc>video,
+.ph.mo-ph.mo-nc.mo-ready>img,.ph.mo-ph.mo-nc.mo-ready>video{transition:none;transform:none}
+
+/* parallax: the frame never moves, its photo drifts inside it */
 .mo-px{translate:0 var(--mo-py,0px)}
 .ph.mo-px{translate:none}
 .ph.mo-px>img,.ph.mo-px>video{translate:0 var(--mo-py,0px);scale:var(--mo-ps,1)}
+/* WebKit lets a translated/scaled photo escape overflow:hidden + border-radius, so a parallax
+   frame is clipped explicitly at rest; its soft shadow lives on a sibling (.mo-shd) instead */
+.ph.mo-px.mo-sh{box-shadow:none}
+.ph.mo-px:not(.mo-ready),
+.ph.mo-px.mo-ph.mo-ready.mo-in.mo-in{clip-path:inset(0 round var(--mo-r))}
+.ph.mo-px.mo-ph.mo-ready.mo-in:not(.mo-done){animation:mo-wipe0 1.35s both}
+@keyframes mo-wipe0{
+  0%{clip-path:inset(10% 10% 10% 10% round var(--mo-r));animation-timing-function:cubic-bezier(.22,.7,.18,1)}
+  80%,100%{clip-path:inset(0px 0px 0px 0px round var(--mo-r))}}
+.mo-shp{position:relative}
+.mo-shd{position:absolute;left:0;top:0;width:0;height:0;border-radius:var(--mo-r,22px);pointer-events:none;
+  box-shadow:var(--shadow)}
+/* the shadow is wiped in with its frame (same clip-path ramp, overshooting so it spreads last) */
+.mo-shd.mo-off{clip-path:inset(10% 10% 10% 10% round var(--mo-r,22px))}
+.mo-shd.mo-go{animation:mo-wipe 1.35s both}
 
 /* ── 3. soft chapter edges ───────────────────────────────────────────── */
 .mo-iso{isolation:isolate}
@@ -66,7 +92,9 @@
 /* ── reduced motion: everything static and visible ───────────────────── */
 @media (prefers-reduced-motion:reduce){
   .mo-h .mo-w{opacity:1!important;transform:none!important;filter:none!important}
-  .ph.mo-ph{clip-path:none!important}
+  .ph.mo-ph,.ph.mo-px{clip-path:none!important;animation:none!important}
+  .ph.mo-px.mo-sh{box-shadow:var(--shadow)}
+  .mo-shd{display:none}
   .ph.mo-ph>img,.ph.mo-ph>video{transform:none!important}
   .mo-px,.mo-mag,.ph.mo-px>img,.ph.mo-px>video{translate:none!important;scale:none!important}
   .mo-glow,.mo-rw{display:none!important}

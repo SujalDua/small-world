@@ -4,10 +4,11 @@
 #jarbox{position:relative;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   -webkit-user-select:none;user-select:none;cursor:pointer}
 .jar-ui{position:absolute;inset:0;pointer-events:none}
-.jar-btn{position:absolute;left:50%;top:8%;width:min(56%,300px);height:72%;transform:translateX(-50%);
+.jar-btn{position:absolute;left:50%;top:5%;width:min(56%,300px);height:69%;transform:translateX(-50%);
   margin:0;padding:0;border:0;border-radius:42% 42% 30% 30%/30% 30% 18% 18%;background:none;
   pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .jar-btn:focus{outline:none}
+.jar-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .jar-btn:focus-visible{outline:1.5px solid var(--night-k);outline-offset:8px}
 .jar-foot{position:absolute;left:0;right:0;bottom:0;height:19%;min-height:74px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;text-align:center}

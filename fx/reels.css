@@ -9,7 +9,7 @@
 
 /* the padding gives the active pill's glow room inside the scroller; the
    negative margins hand that room back so the block's height is unchanged */
-.reels-tabs{display:flex;justify-content:flex-start;gap:8px;margin:-6px auto -12px;padding:8px 14px 18px;
+.reels-tabs{display:flex;justify-content:flex-start;gap:8px;margin:-6px auto -10px;padding:8px 14px 18px;
   overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .reels-tabs::-webkit-scrollbar{display:none}
 .reels-tab:first-child{margin-left:auto}.reels-tab:last-child{margin-right:auto}
@@ -22,9 +22,9 @@
 .reels-tab.on{background:var(--olive);border-color:var(--olive);color:var(--bg);
   box-shadow:0 6px 18px -6px color-mix(in srgb,var(--olive) 70%,transparent)}
 
-.reels-stage{position:relative;height:calc(var(--rw)*1.7 + 34px);
-  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent);
-  mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent);
+.reels-stage{position:relative;height:calc(var(--rw)*1.76 + 34px);
+  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);
+  mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);
   margin:0 calc(50% - 50vw);overflow:hidden;overflow:clip;
   touch-action:pan-y;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
 .reels-stage.dragging{cursor:grabbing}
