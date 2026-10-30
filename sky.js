@@ -135,9 +135,12 @@ glow.renderOrder=1; moon.renderOrder=2;               // the disc sits on its ha
 var moonG=new THREE.Group(); moonG.add(glow); moonG.add(moon);
 scene.add(moonG);
 function placeMoon(){
-  var a=innerWidth/innerHeight, s=a>1?7.2:5.6;
+  // on a phone held upright the text column is the whole width, so the moon keeps to the top-right gutter
+  // (disc centre about 89% across, 12% down) instead of sitting behind the words
+  var a=innerWidth/innerHeight, s=a>1?7.2:4.6;
   moon.scale.set(s,s,1); glow.scale.set(s*4.2,s*4.2,1);
-  moonG.position.set(a>1 ? 34 : 12, a>1 ? 26 : 30, -90);
+  moonG.userData.y0 = a>1 ? 26 : 35.5;
+  moonG.position.set(a>1 ? 34 : 36.5*a, moonG.userData.y0, -90);
 }
 placeMoon();
 
@@ -274,7 +277,11 @@ function frame(){
   var dt=Math.min(clock.getDelta(),.05);
   if (document.hidden) return;
   var t0=clock.elapsedTime;
-  if (window.SKY_ON===false){ updateMods(t0,dt); if (!STAGE.anyVisible()) return; }
+  if (window.SKY_ON===false){
+    // nothing 3D near: look for a chapter coming into reach ten times a second, not sixty
+    if (!STAGE.anyVisible() && (frame.n=(frame.n||0)+1)%6) return;
+    updateMods(t0,dt); if (!STAGE.anyVisible()) return;
+  }
   var t=clock.elapsedTime, ph=window.SKY_PHASE||0;
   bgMat.uniforms.uTime.value=t; bgMat.uniforms.uPhase.value=ph;
   far.material.uniforms.uTime.value=t; mid.material.uniforms.uTime.value=t; near.material.uniforms.uTime.value=t;
@@ -283,7 +290,7 @@ function frame(){
   look.x+=(pointer.x-look.x)*.03; look.y+=(pointer.y-look.y)*.03;
   cam.position.x=look.x*1.4; cam.position.y=-ph*14+look.y*-.8;
   cam.rotation.x=ph*.10; cam.rotation.y=-look.x*.02;
-  moonG.position.y += ((innerWidth>innerHeight?26:30) - ph*12 - moonG.position.y)*.05;
+  moonG.position.y += (moonG.userData.y0 - ph*12 - moonG.position.y)*.05;
   far.rotation.z=t*.0015; mid.rotation.z=t*.002;
   if (sh.t<0){ sh.next-=dt; if (sh.next<=0) launch(); }
   else {
@@ -298,4 +305,13 @@ function frame(){
 }
 requestAnimationFrame(frame);
 window.__sky={renderer:R, stage:STAGE, mods:mods};
+// compile every 3D chapter's shaders just after load, while she is still at the door, so the first scroll
+// into the jar, the sky or the moonrise never stalls on it (compile() reads visibility synchronously)
+addEventListener("load",function(){ setTimeout(function(){
+  try{
+    mods.forEach(function(m){ m.group.visible=true; }); cam.updateMatrixWorld();
+    if (R.compileAsync) R.compileAsync(scene,cam).catch(function(){}); else R.compile(scene,cam);
+  }catch(e){}
+  mods.forEach(function(m){ m.group.visible=m.state.visible; });
+},60); });
 })();

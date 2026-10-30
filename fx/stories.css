@@ -54,7 +54,7 @@ html.stories-lock,html.stories-lock body{overscroll-behavior:none}
   will-change:transform,opacity;contain:layout paint}
 .stories.open .stories-frame{opacity:1;transform:none}
 .stories.drag .stories-frame{transition:none}
-@media (min-width:600px){
+@media (min-width:600px) and (min-height:560px){
   .stories-frame{inset:auto;left:50%;top:50%;width:min(440px,calc((100vh - 40px)*.5625));height:min(calc(100vh - 40px),860px);
     margin:calc(min(calc(100vh - 40px),860px)/-2) 0 0 calc(min(440px,calc((100vh - 40px)*.5625))/-2);border-radius:20px;
     box-shadow:0 40px 120px rgba(0,0,0,.6)}
@@ -361,3 +361,9 @@ html.stories-lock,html.stories-lock body{overscroll-behavior:none}
 }
 .stories-slides{position:absolute;inset:0}
 .stories-chat{position:relative}
+
+/* desktop: the highlights row lines up under the centred heading instead of hugging the left edge */
+@media (min-width:700px){ .storyhi{margin:22px auto 0;max-width:760px;justify-content:flex-start}
+  .storyhi>:first-child{margin-left:auto} .storyhi>:last-child{margin-right:auto} }   /* centred, yet still scrollable if it overflows */
+/* a short landscape phone: the chat scrolls inside the full-bleed frame rather than losing its first lines */
+@media (max-height:559px){ .stories-chat{overflow-y:auto;justify-content:flex-start} }

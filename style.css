@@ -123,14 +123,14 @@ p{margin:0 0 1em}
 /* ── gate ───────────────────────────────────────────────────────────── */
 #gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;
   color:var(--night-ink);text-align:center;transition:opacity 1.2s var(--ease),visibility 1.2s}
-#gate.gone{opacity:0;visibility:hidden;pointer-events:none}
+#gate.gone{opacity:0;visibility:hidden}
 .gin{max-width:520px;width:100%}
 .hello{font-family:var(--fd);font-weight:300;font-size:clamp(2.6rem,11vw,4.6rem);line-height:1.05;
   letter-spacing:-.03em;margin:0;min-height:1.1em}
 .hello em{font-style:italic;color:var(--night-em);font-variation-settings:"SOFT" 100,"WONK" 1}
-.hello span{display:inline-block;opacity:0;transform:translateY(.25em);filter:blur(6px);
+#gate .hello span{display:inline-block;opacity:0;transform:translateY(.25em);filter:blur(6px);
   transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease)}
-.hello span.on{opacity:1;transform:none;filter:none}
+#gate .hello span.on{opacity:1;transform:none;filter:none}
 .hello2{font-family:var(--fd);font-style:italic;font-weight:300;font-size:clamp(1.4rem,5vw,2rem);
   color:var(--night-ink2);margin:.2em 0 0;min-height:1.3em}
 .ask{margin:38px 0 18px;color:var(--night-ink2);font-size:1rem;opacity:0;transition:opacity 1s}
@@ -343,7 +343,7 @@ p{margin:0 0 1em}
 .hquote small{display:block;font-style:normal;font-family:var(--fb);font-size:.78rem;color:var(--night-ink2);margin-top:6px}
 .stage{position:relative;border-radius:26px;overflow:hidden;aspect-ratio:1/1.06;background:#1A1F16;
   box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.06);touch-action:pan-y}
-@media (min-width:760px){.stage{aspect-ratio:16/10}}
+@media (min-width:760px),(orientation:landscape){.stage{aspect-ratio:16/10;max-height:calc(100svh - 80px)}}
 .stage canvas{width:100%!important;height:100%!important}
 .stage .fallback{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:30px;color:var(--night-ink2)}
 .stage.nogl .fallback{display:grid}
@@ -365,7 +365,7 @@ p{margin:0 0 1em}
 .spot h4{margin:0 0 6px;font-family:var(--fd);font-weight:400;font-size:1.35rem}
 .spot p{margin:0;color:var(--night-ink2)}
 .spot q{display:block;margin-top:12px;font-family:var(--fd);font-style:italic;color:var(--night-ink);quotes:"“" "”";white-space:pre-line}
-.spot q small{display:block;font-family:var(--fb);font-style:normal;font-size:.76rem;color:var(--night-ink2);margin-top:4px}
+.spot q + small{display:block;font-family:var(--fb);font-style:normal;font-size:.76rem;color:var(--night-ink2);margin-top:4px}
 #home .ctrl .arrow{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:var(--night-ink)}
 #home .dots i{background:rgba(255,255,255,.2)} #home .dots i.on{background:var(--night-em)}
 .practice{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center;margin-top:30px}
@@ -492,7 +492,7 @@ input[type=range]{flex:1;accent-color:var(--cherry2)}
 /* ── stars ──────────────────────────────────────────────────────────── */
 .starbox{position:relative;margin-top:22px;border-radius:24px;overflow:hidden;aspect-ratio:1/1.05;
   background:radial-gradient(80% 70% at 50% 45%,rgba(30,40,60,.35),rgba(0,0,0,.25));border:1px solid rgba(255,255,255,.08)}
-@media (min-width:760px){.starbox{aspect-ratio:16/10}}
+@media (min-width:760px),(orientation:landscape){.starbox{aspect-ratio:16/10;max-height:calc(100svh - 80px)}}
 .starbox canvas{width:100%;height:100%;touch-action:manipulation}
 .starcard{position:absolute;left:12px;right:12px;bottom:12px;padding:14px 16px;border-radius:16px;background:rgba(14,16,20,.78);
   border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
@@ -607,3 +607,44 @@ input[type=range]{flex:1;accent-color:var(--cherry2)}
 #finale .fl p,#finale .fsig,#finale .vcap,#finale .moonrow .capt,#finale .bye{text-shadow:0 1px 14px rgba(12,16,18,.85)}
 /* the fireflies gather into a heart here (fx/stage-finale.js) */
 .finheart{height:min(72vw,340px);pointer-events:none}
+
+/* ── fixes from the end-to-end pass ── */
+[hidden]{display:none!important}                       /* author display rules (.okbtn) must never beat [hidden] */
+/* the door fits any screen: it clears the top bar, and scrolls rather than clipping on a short landscape phone */
+#gate{padding-top:calc(env(safe-area-inset-top,0px) + 84px);overflow-y:auto;place-items:safe center}
+@media (max-height:480px){
+  #gate{padding-top:56px}
+  .hello{font-size:2.2rem} .hello2{display:none}
+  .moods{grid-template-columns:repeat(5,1fr);gap:6px} .moods button{padding:8px 6px;gap:6px;justify-content:center;font-size:.78rem;flex-direction:column}
+  .brand{display:none}
+}
+/* night chapters: words stay legible when the moon or a 3D scene passes behind them */
+.ch.sky .k,.ch.sky .t,.ch.sky .lead,.ch.sky .big,.ch.sky .rn,.ch.sky .vbox,.ch.sky .stardone,#hero .hsub,#hero .hthen{
+  text-shadow:0 1px 14px rgba(12,16,18,.75),0 0 2px rgba(12,16,18,.4)}
+/* promise ticks: a 46 px target for a thumb */
+.tick{position:relative}
+.tick::before{content:"";position:absolute;inset:-8px;border-radius:50%}
+/* "Things you said" on small phones: a counter instead of 22 wrapping dots */
+.dcount{display:none;font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--ink2,#6b6b5f);flex:1;text-align:center;letter-spacing:.06em}
+@media (max-width:420px){ #saidDots{display:none} .dcount{display:block} }
+/* the star card on the smallest phones: compact, so it never hides most of the sky */
+@media (max-width:380px){ .starcard{padding:10px 12px;left:8px;right:8px} .starcard h4{font-size:1.04rem} .starcard p{font-size:.84rem;line-height:1.4} }
+/* the door on a wide screen: one balanced, centred row of moods */
+@media (min-width:700px) and (min-height:481px){ .moods{display:flex;flex-wrap:wrap;justify-content:center} .moods button{flex:0 1 auto;white-space:nowrap} }
+/* cream meets cream softly: an alt chapter feathers into the paper chapter beside it */
+.ch:not(.sky):not(.alt) + .ch.alt{background:linear-gradient(var(--bg),var(--bg2) 120px)}
+.ch.alt:has(+ .ch:not(.sky):not(.alt)){background:linear-gradient(var(--bg2) calc(100% - 120px),var(--bg))}
+/* the lightbox is a room of its own: nothing from the page shows through behind the photo */
+#lb{background:rgba(10,12,9,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+/* verse translations: let the phone wrap them evenly */
+.verse .vt{text-wrap:balance}
+/* the door: lines fade in where they already sit; the mood line's room is kept from the start */
+#gate .hello2{opacity:0;transition:opacity 1s var(--ease)} #gate .hello2.on{opacity:1}
+#gate .gline{min-height:3.2em}
+/* nothing animates where she cannot see it */
+main > .ch:not(.live) *,main > .ch:not(.live) *::before,main > .ch:not(.live) *::after{animation-play-state:paused!important}
+/* Our story is a short chapter: less air above and below it, so hero → story → ask me flows */
+#story{padding-top:clamp(56px,8vh,104px);padding-bottom:clamp(44px,6vh,84px)}
+/* the promise paper: one rule under each promise, so a line can never run through the handwriting */
+.ruled{background-image:linear-gradient(90deg,transparent 46px,rgba(158,27,50,.18) 46px 47px,transparent 47px)}
+.prom li{border-bottom:1px solid rgba(94,107,47,.14)} .prom li:last-child{border-bottom:0}

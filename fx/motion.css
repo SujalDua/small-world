@@ -61,14 +61,14 @@
 
 /* ── 3. soft chapter edges ───────────────────────────────────────────── */
 .mo-iso{isolation:isolate}
-.mo-et::before,.mo-eb::after{content:"";position:absolute;left:0;right:0;height:140px;
+.mo-et::before,.mo-eb::after{content:"";position:absolute;left:0;right:0;height:142px;
   pointer-events:none;z-index:-1}
 /* an eased ramp (many stops) so the melt has no visible band */
-.mo-et::before{top:0;background:linear-gradient(to bottom,
+.mo-et::before{top:-2px;background:linear-gradient(to bottom,
   rgba(var(--mo-et),1) 0%,rgba(var(--mo-et),.94) 9%,rgba(var(--mo-et),.83) 19%,rgba(var(--mo-et),.69) 29%,
   rgba(var(--mo-et),.54) 39%,rgba(var(--mo-et),.39) 50%,rgba(var(--mo-et),.26) 61%,rgba(var(--mo-et),.15) 72%,
   rgba(var(--mo-et),.07) 83%,rgba(var(--mo-et),.02) 92%,rgba(var(--mo-et),0) 100%)}
-.mo-eb::after{bottom:0;background:linear-gradient(to top,
+.mo-eb::after{bottom:-2px;background:linear-gradient(to top,
   rgba(var(--mo-eb),1) 0%,rgba(var(--mo-eb),.94) 9%,rgba(var(--mo-eb),.83) 19%,rgba(var(--mo-eb),.69) 29%,
   rgba(var(--mo-eb),.54) 39%,rgba(var(--mo-eb),.39) 50%,rgba(var(--mo-eb),.26) 61%,rgba(var(--mo-eb),.15) 72%,
   rgba(var(--mo-eb),.07) 83%,rgba(var(--mo-eb),.02) 92%,rgba(var(--mo-eb),0) 100%)}
