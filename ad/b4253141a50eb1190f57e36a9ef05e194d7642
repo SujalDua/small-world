@@ -1,0 +1,19 @@
+index.html
+  s_69ffc2c6881e5d::t_73c6fc93a4a919 44,69,83-100,108,135,137-139,147,158-159,161-173,178,189-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "adb4253141a50eb1190f57e36a9ef05e194d7642",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "unknown"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
