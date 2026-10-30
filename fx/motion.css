@@ -1,0 +1,73 @@
+/* fx/motion — the global motion layer: headline reveals, image wipes + parallax,
+   soft chapter edges, desktop cursor glow + magnetic buttons, touch ripples.
+   Every class is prefixed mo-. Nothing here changes layout. */
+
+/* ── 1. headline reveals ─────────────────────────────────────────────── */
+.mo-h .mo-w{display:inline-block;white-space:nowrap;vertical-align:top}
+.mo-h.mo-ready:not(.mo-in) .mo-w{opacity:0;transform:translate3d(0,.6em,0);filter:blur(6px)}
+.mo-h.mo-ready .mo-w{
+  transition:opacity .85s var(--ease),transform 1.15s var(--ease),filter .95s var(--ease);
+  transition-delay:calc(var(--mo-i,0) * 55ms)}
+.mo-h.mo-ready:not(.mo-in) .mo-em{font-variation-settings:"SOFT" 0,"WONK" 0}
+.mo-h.mo-ready .mo-em{transition:font-variation-settings 1.5s var(--ease);
+  transition-delay:calc(var(--mo-i,0) * 55ms + 260ms)}
+.mo-h.mo-nt .mo-w,.mo-h.mo-nt .mo-em{transition:none!important}
+/* once it has landed: no filters, no transitions, nothing left for the compositor */
+.mo-h.mo-done .mo-w{transition:none;filter:none}
+.mo-h.mo-done .mo-em{transition:none}
+
+/* ── 2. images ───────────────────────────────────────────────────────── */
+.ph.mo-ph{--mo-r:22px}
+.ph.mo-ph.mo-ready:not(.mo-in){clip-path:inset(10% 10% 10% 10% round var(--mo-r))}
+/* wipe to the frame, then a little past it so the soft shadow eases in instead of popping */
+.ph.mo-ph.mo-ready.mo-in{animation:mo-wipe 1.35s both}
+@keyframes mo-wipe{
+  0%{clip-path:inset(10% 10% 10% 10% round var(--mo-r));animation-timing-function:cubic-bezier(.22,.7,.18,1)}
+  78%{clip-path:inset(0px 0px 0px 0px round var(--mo-r));animation-timing-function:cubic-bezier(.4,0,.6,1)}
+  100%{clip-path:inset(-60px -60px -60px -60px round calc(var(--mo-r) + 60px))}}
+.ph.mo-ph.mo-done{clip-path:none;animation:none}
+.ph.mo-ph.mo-ready:not(.mo-in)>img,.ph.mo-ph.mo-ready:not(.mo-in)>video{transform:scale(1.1)}
+.ph.mo-ph.mo-ready>img,.ph.mo-ph.mo-ready>video{
+  transition:opacity 1s var(--ease),transform 1.7s cubic-bezier(.16,.84,.24,1)}
+.mo-px{translate:0 var(--mo-py,0px)}
+.ph.mo-px{translate:none}
+.ph.mo-px>img,.ph.mo-px>video{translate:0 var(--mo-py,0px);scale:var(--mo-ps,1)}
+
+/* ── 3. soft chapter edges ───────────────────────────────────────────── */
+.mo-iso{isolation:isolate}
+.mo-et::before,.mo-eb::after{content:"";position:absolute;left:0;right:0;height:140px;
+  pointer-events:none;z-index:-1}
+/* an eased ramp (many stops) so the melt has no visible band */
+.mo-et::before{top:0;background:linear-gradient(to bottom,
+  rgba(var(--mo-et),1) 0%,rgba(var(--mo-et),.94) 9%,rgba(var(--mo-et),.83) 19%,rgba(var(--mo-et),.69) 29%,
+  rgba(var(--mo-et),.54) 39%,rgba(var(--mo-et),.39) 50%,rgba(var(--mo-et),.26) 61%,rgba(var(--mo-et),.15) 72%,
+  rgba(var(--mo-et),.07) 83%,rgba(var(--mo-et),.02) 92%,rgba(var(--mo-et),0) 100%)}
+.mo-eb::after{bottom:0;background:linear-gradient(to top,
+  rgba(var(--mo-eb),1) 0%,rgba(var(--mo-eb),.94) 9%,rgba(var(--mo-eb),.83) 19%,rgba(var(--mo-eb),.69) 29%,
+  rgba(var(--mo-eb),.54) 39%,rgba(var(--mo-eb),.39) 50%,rgba(var(--mo-eb),.26) 61%,rgba(var(--mo-eb),.15) 72%,
+  rgba(var(--mo-eb),.07) 83%,rgba(var(--mo-eb),.02) 92%,rgba(var(--mo-eb),0) 100%)}
+
+/* ── 4. desktop: cursor glow + magnetic pull ─────────────────────────── */
+.mo-glow{position:fixed;left:0;top:0;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;
+  pointer-events:none;z-index:2;mix-blend-mode:screen;opacity:0;
+  background:radial-gradient(closest-side,rgba(241,163,174,.20),rgba(226,194,122,.10) 45%,rgba(169,186,110,.04) 70%,rgba(0,0,0,0));
+  transition:opacity .7s var(--ease);will-change:transform}
+.mo-glow.on{opacity:.75}
+.mo-mag{translate:var(--mo-mx,0px) var(--mo-my,0px)}
+
+/* ── 5. ripple ───────────────────────────────────────────────────────── */
+.mo-rhost{position:relative}
+.mo-rw{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:3}
+.mo-rp{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,currentColor 0%,currentColor 40%,rgba(255,255,255,0) 100%);opacity:0;
+  transform:scale(0);animation:mo-rip .62s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes mo-rip{0%{opacity:.3;transform:scale(.06)}35%{opacity:.24}100%{opacity:0;transform:scale(1)}}
+
+/* ── reduced motion: everything static and visible ───────────────────── */
+@media (prefers-reduced-motion:reduce){
+  .mo-h .mo-w{opacity:1!important;transform:none!important;filter:none!important}
+  .ph.mo-ph{clip-path:none!important}
+  .ph.mo-ph>img,.ph.mo-ph>video{transform:none!important}
+  .mo-px,.mo-mag,.ph.mo-px>img,.ph.mo-px>video{translate:none!important;scale:none!important}
+  .mo-glow,.mo-rw{display:none!important}
+}

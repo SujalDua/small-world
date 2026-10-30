@@ -12,6 +12,8 @@ var small=Math.min(innerWidth,innerHeight)<700;
 var DPR=Math.min(window.devicePixelRatio||1, small?1.5:2);
 R.setPixelRatio(DPR);
 R.setClearColor(0x0C1012,1);
+R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.0;   // lit stage scenes only; the sky's own shaders ignore it
+R.outputColorSpace=THREE.SRGBColorSpace;
 var scene=new THREE.Scene();
 var cam=new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .1, 400);
 cam.position.set(0,0,0);
@@ -127,8 +129,8 @@ function glowTex(r,g,b,k){
   x.fillStyle=gr; x.fillRect(0,0,256,256);
   return new THREE.CanvasTexture(c);
 }
-var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex(), transparent:true, depthWrite:false, color:0xFFFFFF}));
-var glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(255,226,180,.62), depthWrite:false, blending:THREE.AdditiveBlending}));
+var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex(), transparent:true, depthWrite:false, color:0xFFFFFF, toneMapped:false}));
+var glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(255,226,180,.62), depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
 glow.renderOrder=1; moon.renderOrder=2;               // the disc sits on its halo, not under it
 var moonG=new THREE.Group(); moonG.add(glow); moonG.add(moon);
 scene.add(moonG);
@@ -180,7 +182,7 @@ function streakTex(){
   x.fillStyle=g; x.fillRect(0,2,256,4);
   return new THREE.CanvasTexture(c);
 }
-var shoot=new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map:streakTex(),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0}));
+var shoot=new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map:streakTex(),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0,toneMapped:false}));
 shoot.scale.set(16,.35,1); scene.add(shoot);
 var sh={t:-1, next:6+Math.random()*10, from:new THREE.Vector3(), dir:new THREE.Vector3()};
 function launch(){
@@ -190,6 +192,71 @@ function launch(){
   sh.dir.set(-Math.cos(ang), Math.sin(ang), 0);
   shoot.rotation.z=Math.atan2(sh.dir.y,sh.dir.x)+Math.PI;
   sh.t=0;
+}
+
+
+/* ══════ the stage ══════════════════════════════════════════════════════
+   One renderer for every 3D moment in the night chapters. A chapter registers a
+   scene anchored to an element on the page; the stage hands it a group that lives
+   in camera space, a way to turn page pixels into positions, the element's box each
+   frame, and the taps that land on it. Nothing renders unless something is on screen. */
+var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+scene.add(cam);
+var camSpace=new THREE.Group(); cam.add(camSpace);
+var hemi=new THREE.HemisphereLight(0xBFD0FF,0x1A1410,.55); scene.add(hemi);
+var moonLight=new THREE.DirectionalLight(0xFFE9C4,1.6); moonLight.position.set(30,40,-20); scene.add(moonLight);
+var env=(function(){
+  try{
+    var pm=new THREE.PMREMGenerator(R), s2=new THREE.Scene(), g=new THREE.SphereGeometry(20,24,12), col=[], p=g.attributes.position;
+    for (var i=0;i<p.count;i++){ var y=p.getY(i)/20, c=new THREE.Color(0x0E1424).lerp(new THREE.Color(0x3A3048),Math.max(0,-y)).lerp(new THREE.Color(0xFFE2B4),Math.max(0,y)*.18); col.push(c.r,c.g,c.b); }
+    g.setAttribute("color",new THREE.Float32BufferAttribute(col,3));
+    s2.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide})));
+    var m=new THREE.Mesh(new THREE.SphereGeometry(2.5,12,8),new THREE.MeshBasicMaterial({color:new THREE.Color(6,5,3.6)})); m.position.set(9,12,-6); s2.add(m);
+    var t=pm.fromScene(s2,.04).texture; pm.dispose(); g.dispose(); return t;
+  }catch(e){ return null; }
+})();
+var mods=[], ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function anchorOf(a){ return typeof a==="string" ? document.getElementById(a) : a; }
+var STAGE = window.STAGE = {
+  THREE:THREE, renderer:R, scene:scene, camera:cam, env:env, dpr:DPR, small:small, reduced:RM,
+  /* page pixels (client coordinates) -> a point in camera space, d units in front of the camera */
+  toCam:function(px,py,d,out){
+    var h=2*d*Math.tan(cam.fov*Math.PI/360), w=h*cam.aspect;
+    return (out||new THREE.Vector3()).set((px/innerWidth-.5)*w,(.5-py/innerHeight)*h,-d);
+  },
+  /* how many world units one CSS pixel spans at distance d */
+  unitsPerPx:function(d){ return 2*d*Math.tan(cam.fov*Math.PI/360)/innerHeight; },
+  /* def: {id, anchor: element|id, hit?: element|id, build(api), update(api,state,t,dt), pick?(api,raycaster,event)}
+     state: {rect, visible, progress (0 as the anchor enters from below .. 1 as it leaves at the top)} */
+  add:function(def){
+    var el=anchorOf(def.anchor); if (!el) return null;
+    var g=new THREE.Group(); g.visible=false; camSpace.add(g);
+    var m={def:def, el:el, group:g, state:{rect:null,visible:false,progress:0}};
+    m.api={THREE:THREE, group:g, stage:STAGE, el:el};
+    try{ def.build && def.build(m.api); }catch(e){ console.warn("stage:"+def.id, e); return null; }
+    var hit=anchorOf(def.hit);
+    if (hit && def.pick){
+      var down=null;
+      hit.addEventListener("pointerdown",function(e){ down={x:e.clientX,y:e.clientY}; },{passive:true});
+      hit.addEventListener("pointerup",function(e){
+        if (!down || Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y)>10) return; down=null;
+        ndc.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+        cam.updateMatrixWorld(); ray.setFromCamera(ndc,cam);
+        try{ def.pick(m.api, ray, e); }catch(err){ console.warn("stage pick:"+def.id, err); }
+      });
+    }
+    mods.push(m); return m.api;
+  },
+  anyVisible:function(){ return mods.some(function(m){ return m.state.visible; }); }
+};
+function updateMods(t,dt){
+  var H=innerHeight;
+  for (var i=0;i<mods.length;i++){
+    var m=mods[i], r=m.el.getBoundingClientRect(), vis=r.bottom>-H*.25 && r.top<H*1.25;
+    m.state.rect=r; m.state.visible=vis; m.group.visible=vis;
+    m.state.progress=Math.max(0,Math.min(1,(H-r.top)/(H+r.height)));
+    if (vis && m.def.update){ try{ m.def.update(m.api,m.state,t,dt); }catch(e){ console.warn("stage:"+m.def.id,e); m.def.update=null; } }
+  }
 }
 
 /* ── loop ─────────────────────────────────────────────────────────────── */
@@ -205,7 +272,9 @@ var shown=false;
 function frame(){
   requestAnimationFrame(frame);
   var dt=Math.min(clock.getDelta(),.05);
-  if (document.hidden || window.SKY_ON===false){ return; }
+  if (document.hidden) return;
+  var t0=clock.elapsedTime;
+  if (window.SKY_ON===false){ updateMods(t0,dt); if (!STAGE.anyVisible()) return; }
   var t=clock.elapsedTime, ph=window.SKY_PHASE||0;
   bgMat.uniforms.uTime.value=t; bgMat.uniforms.uPhase.value=ph;
   far.material.uniforms.uTime.value=t; mid.material.uniforms.uTime.value=t; near.material.uniforms.uTime.value=t;
@@ -223,9 +292,10 @@ function frame(){
     shoot.material.opacity=Math.sin(Math.min(1,k)*Math.PI)*.9;
     if (k>=1){ sh.t=-1; sh.next=12+Math.random()*16; shoot.material.opacity=0; }
   }
+  cam.updateMatrixWorld(); updateMods(t,dt);
   R.render(scene,cam);
   if (!shown){ shown=true; cv.style.background="none"; }
 }
 requestAnimationFrame(frame);
-window.__sky={renderer:R};
+window.__sky={renderer:R, stage:STAGE, mods:mods};
 })();

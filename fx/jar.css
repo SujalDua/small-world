@@ -1,0 +1,31 @@
+/* Reasons jar - the page layer over the 3D jar in #jarbox (fx/stage-jar.js).
+   The jar itself is drawn on the night stage; this is only the count, the hint
+   and an invisible, focusable button over the jar for keyboards. */
+#jarbox{position:relative;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none;cursor:pointer}
+.jar-ui{position:absolute;inset:0;pointer-events:none}
+.jar-btn{position:absolute;left:50%;top:8%;width:min(56%,300px);height:72%;transform:translateX(-50%);
+  margin:0;padding:0;border:0;border-radius:42% 42% 30% 30%/30% 30% 18% 18%;background:none;
+  pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.jar-btn:focus{outline:none}
+.jar-btn:focus-visible{outline:1.5px solid var(--night-k);outline-offset:8px}
+.jar-foot{position:absolute;left:0;right:0;bottom:0;height:19%;min-height:74px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;text-align:center}
+.jar-count{margin:0;display:flex;align-items:baseline;justify-content:center;gap:10px;color:var(--night-ink)}
+.jar-n{display:inline-block;min-width:2ch;text-align:right;font-family:var(--fd);font-weight:300;
+  font-size:clamp(1.9rem,7vw,2.6rem);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums lining-nums;
+  font-variation-settings:"SOFT" 100,"WONK" 0;transform-origin:70% 60%}
+.jar-l{min-width:7.4em;text-align:left;font-family:var(--fb);font-size:.7rem;font-weight:700;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--night-k)}
+.jar-hint{margin:0;height:1.6em;font-family:var(--fh);font-size:1.32rem;line-height:1.6;color:var(--night-em);
+  opacity:0;transform:translateY(5px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.jar-hint.on{opacity:.92;transform:none}
+.jar-count.bump .jar-n{animation:jar-bump .55s var(--ease)}
+@keyframes jar-bump{0%{transform:scale(1)}28%{transform:scale(1.2) translateY(-2px)}100%{transform:scale(1)}}
+/* no WebGL: a quiet glass outline so there is still something to tap */
+.jar-2d .jar-btn{border:1px solid rgba(255,255,255,.18);
+  background:radial-gradient(60% 50% at 50% 65%,rgba(232,196,119,.22),rgba(232,196,119,0) 70%),rgba(255,255,255,.03)}
+@media (prefers-reduced-motion:reduce){
+  .jar-count.bump .jar-n{animation:none}
+  .jar-hint{transition:none}
+}

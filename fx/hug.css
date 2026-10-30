@@ -1,0 +1,69 @@
+/* Hold to hug — a night chapter: a soft glowing pad, a heart that breathes,
+   and a canvas of light that gathers into a heart while she holds on. */
+#hug .hug-stage{position:relative;width:min(100%,440px);aspect-ratio:1/1;margin:4px auto 0;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#hug .hug-aura{position:absolute;inset:4%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(200,56,78,.24) 0%,rgba(158,27,50,.09) 42%,rgba(158,27,50,0) 68%);
+  animation:hugaura 4.8s ease-in-out infinite}
+#hug .hug-pad{position:absolute;left:15%;top:15%;width:70%;height:70%;border-radius:50%;padding:0;
+  border:1px solid rgba(255,255,255,.13);color:inherit;
+  background:
+    radial-gradient(circle at 50% 30%,rgba(255,238,228,.14),rgba(255,238,228,0) 46%),
+    radial-gradient(circle at 50% 55%,rgba(224,86,106,.16),rgba(224,86,106,.05) 48%,rgba(12,16,18,0) 74%),
+    rgba(14,16,18,.5);
+  box-shadow:0 0 0 7px rgba(241,163,174,.035),0 30px 80px rgba(0,0,0,.45),0 0 90px rgba(200,56,78,.2),
+    inset 0 1px 0 rgba(255,255,255,.12),inset 0 -24px 60px rgba(0,0,0,.32);
+  touch-action:pan-y;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;transition:transform .55s var(--ease)}
+#hug .hug-pad:focus-visible{outline:2px solid var(--night-em);outline-offset:6px;border-radius:50%}
+#hug .hug-glow{position:absolute;inset:-1px;border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(circle,rgba(241,163,174,.3),rgba(200,56,78,.12) 52%,rgba(200,56,78,0) 72%);
+  box-shadow:0 0 70px rgba(224,86,106,.42),inset 0 0 40px rgba(241,163,174,.18);transition:opacity .7s var(--ease)}
+#hug.hug-holding .hug-pad{transform:scale(.965)}
+#hug.hug-holding .hug-glow{transition:none}
+#hug.hug-done .hug-glow{opacity:.5}
+#hug .hug-ring,#hug .hug-heart,#hug .hug-cv{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#hug .hug-ring{transform:rotate(-90deg)}
+#hug .hug-ring circle{fill:none;stroke:var(--night-em);stroke-width:.6;stroke-linecap:round;
+  stroke-dasharray:1 1;stroke-dashoffset:1;opacity:0;transition:stroke-dashoffset .8s var(--ease),opacity .6s}
+#hug.hug-holding .hug-ring circle{opacity:.9;transition:opacity .3s}
+#hug .hug-heart{overflow:visible;transform-origin:50% 50%;animation:hugbreathe 3.6s ease-in-out infinite;
+  transition:opacity .7s var(--ease);filter:drop-shadow(0 0 5px rgba(241,163,174,.55))}
+#hug .hug-heart path{fill:rgba(241,163,174,.06);stroke:#F6C1C8;stroke-width:.5;stroke-linejoin:round}
+#hug.hug-holding .hug-heart{opacity:.18}
+#hug.hug-done .hug-heart{opacity:0}
+#hug .hug-cv{-webkit-mask-image:radial-gradient(circle closest-side,#000 70%,transparent 100%);
+  mask-image:radial-gradient(circle closest-side,#000 70%,transparent 100%)}
+#hug .hug-hint{position:absolute;left:0;right:0;bottom:1.5%;margin:0;text-align:center;pointer-events:none;
+  font-family:var(--fd);font-style:italic;font-weight:340;font-size:1.06rem;letter-spacing:.01em;
+  color:var(--night-ink2);font-variation-settings:"SOFT" 100,"WONK" 1;transition:opacity .5s var(--ease)}
+#hug .hug-hint.dim{opacity:0}
+
+/* the answer underneath: always takes its space, only fades in (no layout shift) */
+#hug .hug-msg{text-align:center;margin-top:10px;transition:opacity .5s var(--ease)}
+#hug .hug-msg.dim{opacity:.16}
+#hug .hug-got,#hug .hug-redeem,#hug .hug-act{opacity:0;transform:translateY(10px);
+  transition:opacity .9s var(--ease),transform .9s var(--ease)}
+#hug .hug-got{margin:0 0 4px;font-family:var(--fd);font-weight:330;font-size:clamp(1.8rem,7vw,2.5rem);line-height:1.1;
+  letter-spacing:-.02em;color:var(--night-ink);font-variation-settings:"SOFT" 60,"WONK" 0}
+#hug .hug-redeem{margin:0 0 12px;font-family:var(--fh);font-size:1.6rem;line-height:1.2;color:var(--night-k)}
+#hug .hug-count{height:1.5em;line-height:1.5;white-space:nowrap;margin:0 0 16px;font-size:.74rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(243,239,226,.5);opacity:0;transition:opacity .9s var(--ease)}
+#hug .hug-count.pop{animation:hugpop .9s var(--ease)}
+#hug .hug-act{visibility:hidden}
+#hug .hug-msg.seen .hug-count{opacity:1}
+#hug .hug-msg.show .hug-got{opacity:1;transform:none;transition-delay:.15s}
+#hug .hug-msg.show .hug-redeem{opacity:1;transform:none;transition-delay:.55s}
+#hug .hug-msg.show .hug-act{opacity:1;transform:none;visibility:visible;transition-delay:1.1s}
+#hug .hug-note{min-height:1.4em;margin:12px 0 0;font-size:.86rem;color:var(--night-ink2)}
+#hug .hug-send{box-shadow:0 10px 30px rgba(200,56,78,.3)}
+
+@keyframes hugbreathe{0%,100%{transform:scale(.965)}50%{transform:scale(1.035)}}
+@keyframes hugaura{0%,100%{opacity:.75;transform:scale(.97)}50%{opacity:1;transform:scale(1.03)}}
+@keyframes hugpop{0%{transform:scale(1)}35%{transform:scale(1.12);color:var(--night-em)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  #hug .hug-heart,#hug .hug-aura{animation:none}
+  #hug .hug-ring{display:none}
+  #hug .hug-got,#hug .hug-redeem,#hug .hug-act,#hug .hug-count{transition:none;transform:none}
+  #hug .hug-count.pop{animation:none}
+}

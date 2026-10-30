@@ -190,10 +190,12 @@ p{margin:0 0 1em}
 .sky .msg.her .b{background:rgba(169,186,110,.17);color:var(--night-ink);border:1px solid rgba(169,186,110,.22)}
 .sky .msg.me .b{background:rgba(224,86,106,.17);color:var(--night-ink);border:1px solid rgba(224,86,106,.24)}
 .sky .msg .ts{color:rgba(243,239,226,.5)}
-.typing{align-self:flex-start;display:none;gap:5px;padding:14px 16px;border-radius:20px;background:var(--olive-mist)}
-.typing.me{align-self:flex-end;background:var(--cherry-mist)}
+.chat{position:relative}
+.typing{position:absolute;left:0;top:0;display:inline-flex;gap:5px;padding:14px 16px;border-radius:20px;background:var(--olive-mist);
+  opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;pointer-events:none}
+.typing.me{left:auto;right:0;background:var(--cherry-mist)}
 .sky .typing{background:rgba(255,255,255,.08)}
-.typing.on{display:inline-flex}
+.typing.on{opacity:1;visibility:visible}
 .typing i{width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:dot 1.2s infinite}
 .sky .typing i{background:var(--night-ink2)}
 .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
@@ -276,6 +278,12 @@ p{margin:0 0 1em}
 .card .nt{position:relative;margin:14px 0 0;font-size:1rem;color:var(--ink2);border-top:1px solid var(--line);padding-top:14px}
 .card .nt::before{content:"🍀 ";}
 .fade{transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.stack{display:grid}
+.stack>.stk{grid-area:1/1;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility .55s,transform .55s var(--ease);transform:translateY(6px)}
+.stack>.stk.on{opacity:1;visibility:visible;transform:none}
+.card.stack>.stk{display:flex;flex-direction:column;justify-content:center}
+.big.stack{display:grid;align-items:center}
+.big.stack>.stk{display:flex;align-items:center}
 .fade.out{opacity:0;transform:translateY(8px)}
 .ctrl{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
 .dots{display:flex;gap:6px;flex-wrap:wrap;flex:1;justify-content:center}
@@ -586,3 +594,16 @@ input[type=range]{flex:1;accent-color:var(--cherry2)}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .petals{display:none}
 }
+
+/* ── v3 chapter frames: each reserves its space before its module renders ── */
+.hring{display:flex;justify-content:center;margin:28px auto 0;min-height:118px}
+.storyhi{max-width:1120px;margin:22px auto 0;min-height:122px}
+.fanwrap{max-width:1120px;margin:14px auto 0}
+#fan{min-height:560px}
+@media (min-width:760px){ #fan{min-height:600px} }
+.jarbox{position:relative;height:clamp(340px,60vh,500px);margin:18px auto 4px;max-width:520px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+/* the finale's moon rises behind the letter: keep its lines crisp over the bright disc */
+#finale .fl p,#finale .fsig,#finale .vcap,#finale .moonrow .capt,#finale .bye{text-shadow:0 1px 14px rgba(12,16,18,.85)}
+/* the fireflies gather into a heart here (fx/stage-finale.js) */
+.finheart{height:min(72vw,340px);pointer-events:none}

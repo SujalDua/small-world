@@ -1,0 +1,349 @@
+/* Our story - Instagram-style stories. Everything prefixed "stories" / "storyring" / "storyhi".
+   Animations are transform/opacity only; a slide's background only moves while it is the
+   one on screen. The viewer is fixed and the page behind it is scroll-locked. */
+
+/* ── entry point (a): the ring ─────────────────────────────────────── */
+.storyring{display:inline-flex;flex-direction:column;align-items:center;gap:8px;border:0;background:none;
+  padding:4px;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.storyring-c{position:relative;display:block;width:var(--storyring,86px);height:var(--storyring,86px);border-radius:50%;
+  transition:transform .35s var(--ease)}
+.storyring:active .storyring-c{transform:scale(.94)}
+.storyring-g{position:absolute;inset:0;border-radius:50%;overflow:hidden}
+.storyring-g::before{content:"";position:absolute;inset:-25%;
+  background:conic-gradient(from 200deg,#8A9A55,#5E6B2F,#B8913E,#C8384E,#9E1B32,#C8384E,#8A9A55);
+  animation:storyspin 7s linear infinite}
+.storyring.seen .storyring-g::before{background:rgba(160,160,150,.55);animation:none}
+.storyring-c img{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);border-radius:50%;
+  object-fit:cover;border:3px solid var(--storyring-gap,#0C1012);background:#1B2016}
+.storyring-l{font-size:.78rem;letter-spacing:.06em;opacity:.85}
+.storyring:not(.seen) .storyring-c::after{content:"";position:absolute;inset:-6px;border-radius:50%;
+  box-shadow:0 0 0 1px rgba(200,56,78,.0);animation:storypulse 2.8s var(--ease) infinite}
+@keyframes storyspin{to{transform:rotate(360deg)}}
+@keyframes storypulse{0%{box-shadow:0 0 0 0 rgba(200,56,78,.35)}70%,100%{box-shadow:0 0 0 12px rgba(200,56,78,0)}}
+
+/* ── entry point (b): highlights row ───────────────────────────────── */
+.storyhi{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  padding:6px 16px 10px;margin:0 -16px;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 28px),transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 28px),transparent)}
+.storyhi::-webkit-scrollbar{display:none}
+.storyhi-i{flex:0 0 auto;width:74px;display:flex;flex-direction:column;align-items:center;gap:7px;
+  border:0;background:none;padding:0;color:inherit;scroll-snap-align:start;scroll-margin-left:16px;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.storyhi-c{position:relative;width:66px;height:66px;border-radius:50%;padding:3px;
+  box-shadow:inset 0 0 0 1.5px currentColor;opacity:.95;transition:transform .3s var(--ease)}
+.storyhi-i:active .storyhi-c{transform:scale(.92)}
+.storyhi-c img{width:100%;height:100%;border-radius:50%;object-fit:cover;background:rgba(127,127,110,.2);
+  opacity:0;transition:opacity .6s}
+.storyhi-c img.ok{opacity:1}
+.storyhi-l{font-size:.74rem;line-height:1.2;max-width:74px;text-align:center;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;opacity:.82}
+
+/* ── the viewer ────────────────────────────────────────────────────── */
+html.stories-lock,html.stories-lock body{overscroll-behavior:none}
+.stories{position:fixed;inset:0;z-index:95;background:rgba(6,8,9,.0);color:#F3EFE2;
+  font-family:var(--fb);-webkit-font-smoothing:antialiased;touch-action:none;overscroll-behavior:contain;
+  visibility:hidden;pointer-events:none;transition:background-color .4s var(--ease),visibility 0s .45s;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stories.open{visibility:visible;pointer-events:auto;background:rgba(6,8,9,.94);transition:background-color .4s var(--ease)}
+.stories-frame{position:absolute;inset:0;overflow:hidden;background:#0C1012;
+  opacity:0;transform:scale(.82);transition:opacity .38s var(--ease),transform .5s var(--ease);
+  will-change:transform,opacity;contain:layout paint}
+.stories.open .stories-frame{opacity:1;transform:none}
+.stories.drag .stories-frame{transition:none}
+@media (min-width:600px){
+  .stories-frame{inset:auto;left:50%;top:50%;width:min(440px,calc((100vh - 40px)*.5625));height:min(calc(100vh - 40px),860px);
+    margin:calc(min(calc(100vh - 40px),860px)/-2) 0 0 calc(min(440px,calc((100vh - 40px)*.5625))/-2);border-radius:20px;
+    box-shadow:0 40px 120px rgba(0,0,0,.6)}
+}
+
+/* top chrome: bars + header. Fades while she holds to pause, as on Instagram */
+.stories-top{position:absolute;left:0;right:0;top:0;z-index:5;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 26px;
+  background:linear-gradient(rgba(0,0,0,.32),rgba(0,0,0,0));transition:opacity .3s var(--ease),color .5s;pointer-events:none}
+.stories-frame[data-tone="light"] .stories-top{background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,0));color:#26291F}
+.stories.held .stories-top,.stories.held .stories-edge{opacity:0}
+.stories-bars{display:flex;gap:4px}
+.stories-bars i{flex:1;height:2.5px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+.stories-frame[data-tone="light"] .stories-bars i{background:rgba(38,41,31,.18)}
+.stories-bars b{display:block;height:100%;background:#fff;border-radius:3px;transform-origin:0 50%;transform:scaleX(0);will-change:transform}
+.stories-frame[data-tone="light"] .stories-bars b{background:#26291F}
+.stories-head{display:flex;align-items:center;gap:10px;margin-top:10px;min-height:40px}
+.stories-av{position:relative;flex:0 0 auto;width:34px;height:34px;border-radius:50%;padding:2px;
+  background:conic-gradient(from 200deg,#8A9A55,#5E6B2F,#B8913E,#C8384E,#9E1B32,#8A9A55)}
+.stories-av img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #0C1012}
+.stories-frame[data-tone="light"] .stories-av img{border-color:#FBF5F0}
+.stories-who{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.stories-who b{font-weight:700;font-size:.86rem;letter-spacing:.01em}
+.stories-who span{font-size:.74rem;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .3s}
+.stories-x{pointer-events:auto;flex:0 0 auto;width:44px;height:44px;margin:-4px -6px -4px 0;border:0;border-radius:50%;
+  background:none;color:inherit;display:grid;place-items:center;touch-action:manipulation}
+.stories-x svg{width:24px;height:24px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.stories-x:focus{outline:none}
+.stories-x:focus-visible{outline:none;box-shadow:inset 0 0 0 1.5px rgba(150,150,140,.5)}
+.stories-scroll:focus{outline:none}
+.stories-frame[data-tone="light"] .stories-x svg{filter:none}
+
+/* slides: stacked, cross-fade with a slight scale */
+.stories-slide{position:absolute;inset:0;opacity:0;transform:scale(1.045);visibility:hidden;
+  transition:opacity .55s var(--ease),transform .7s var(--ease),visibility 0s .7s}
+.stories-slide.on{opacity:1;transform:none;visibility:visible;transition:opacity .55s var(--ease),transform .7s var(--ease)}
+.stories-slide.back:not(.on){transform:scale(.96)}
+.stories-slide[data-tone="light"]{color:#26291F}
+.stories-body{position:absolute;left:0;right:0;top:calc(84px + env(safe-area-inset-top,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;padding:0 18px;z-index:2}
+
+/* ── backgrounds: seven moods, all CSS. They only move while on screen ── */
+.stories-bg{position:absolute;inset:0;overflow:hidden;z-index:0}
+.stories-bg::before,.stories-bg::after,.stories-bg i{content:"";position:absolute;pointer-events:none}
+.stories-slide:not(.on) .stories-bg::before,.stories-slide:not(.on) .stories-bg::after,
+.stories-slide:not(.on) .stories-bg i,.stories.held .stories-bg::before,.stories.held .stories-bg::after,
+.stories.held .stories-bg i{animation-play-state:paused}
+
+/* night - deep sky, warm horizon, a moon, twinkling stars */
+.stories-bg[data-bg="night"]{background:
+  radial-gradient(130% 60% at 50% 112%,#4B2E25 0%,#2A2219 34%,rgba(18,24,20,0) 70%),
+  radial-gradient(90% 60% at 50% 0%,#141C22 0%,#0C1012 70%) #0C1012}
+.stories-bg[data-bg="night"]::before{inset:-10%;opacity:.9;
+  background-image:
+   radial-gradient(1.2px 1.2px at 12% 18%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 33% 9%,#fff 50%,transparent 51%),
+   radial-gradient(1.4px 1.4px at 57% 27%,#FFF4D6 50%,transparent 51%),radial-gradient(1px 1px at 81% 41%,#fff 50%,transparent 51%),
+   radial-gradient(1.3px 1.3px at 22% 47%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 68% 58%,#fff 50%,transparent 51%),
+   radial-gradient(1.1px 1.1px at 44% 66%,#fff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 90% 14%,#FFF4D6 50%,transparent 51%),
+   radial-gradient(1px 1px at 6% 72%,#fff 50%,transparent 51%),radial-gradient(1.2px 1.2px at 74% 82%,#fff 50%,transparent 51%);
+  background-size:230px 260px;animation:storytw 5s ease-in-out infinite alternate}
+.stories-bg[data-bg="night"]::after{width:300px;height:300px;right:calc(13% - 119px);top:calc(-9px + env(safe-area-inset-top,0px));
+  background:
+   radial-gradient(circle at 46% 46%,#FFFDF2 0,#F4E9CA 17px,#E3D3A8 30px,rgba(227,211,168,0) 31.5px),
+   radial-gradient(circle,rgba(255,238,196,.30) 28px,rgba(255,236,190,.12) 52px,rgba(255,236,190,.04) 95px,rgba(255,236,190,0) 150px);
+  animation:storyfloat 9s ease-in-out infinite alternate}
+.stories-bg[data-bg="night"] i{inset:-10%;opacity:.55;background-image:
+   radial-gradient(1px 1px at 20% 30%,#fff 50%,transparent 51%),radial-gradient(1.3px 1.3px at 60% 10%,#fff 50%,transparent 51%),
+   radial-gradient(1px 1px at 85% 70%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 40% 85%,#fff 50%,transparent 51%);
+  background-size:170px 190px;animation:storytw 3.6s ease-in-out infinite alternate-reverse}
+
+/* olive - her colour: deep moss to sage, with slow bokeh */
+.stories-bg[data-bg="olive"]{background:linear-gradient(168deg,#161B0C 0%,#2C3416 30%,#4C5726 62%,#7A8A47 100%)}
+.stories-bg[data-bg="olive"]::before,.stories-bg[data-bg="cherry"]::before,.stories-bg[data-bg="blush"]::before{inset:-20%;
+  background:
+   radial-gradient(circle at 18% 22%,rgba(227,230,207,.20) 0 34px,transparent 36px),
+   radial-gradient(circle at 78% 30%,rgba(227,230,207,.13) 0 58px,transparent 61px),
+   radial-gradient(circle at 62% 70%,rgba(226,194,122,.16) 0 26px,transparent 28px),
+   radial-gradient(circle at 28% 80%,rgba(227,230,207,.10) 0 70px,transparent 73px),
+   radial-gradient(circle at 88% 88%,rgba(226,194,122,.12) 0 40px,transparent 42px),
+   radial-gradient(circle at 45% 45%,rgba(227,230,207,.08) 0 90px,transparent 94px);
+  filter:blur(6px);animation:storybokeh 16s ease-in-out infinite alternate}
+.stories-bg[data-bg="olive"]::after,.stories-bg[data-bg="cherry"]::after{inset:0;
+  background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(0,0,0,.42) 100%)}
+.stories-bg[data-bg="olive"] i{inset:-20%;opacity:.8;background:
+   radial-gradient(circle at 70% 12%,rgba(226,194,122,.18) 0 18px,transparent 20px),
+   radial-gradient(circle at 10% 55%,rgba(227,230,207,.15) 0 22px,transparent 24px),
+   radial-gradient(circle at 92% 60%,rgba(227,230,207,.12) 0 14px,transparent 16px);
+  filter:blur(2px);animation:storybokeh2 11s ease-in-out infinite alternate}
+
+/* blush - soft rose morning; the one light chat background */
+.stories-bg[data-bg="blush"]{background:
+  radial-gradient(110% 70% at 80% 0%,#FFF8F3 0%,rgba(255,248,243,0) 60%),
+  linear-gradient(172deg,#FBEEEA 0%,#F5DCDC 48%,#EBBFC5 100%)}
+.stories-bg[data-bg="blush"]::before{opacity:1;filter:blur(8px);background:
+   radial-gradient(circle at 18% 20%,rgba(255,255,255,.75) 0 40px,transparent 43px),
+   radial-gradient(circle at 80% 34%,rgba(241,163,174,.35) 0 64px,transparent 67px),
+   radial-gradient(circle at 60% 76%,rgba(255,255,255,.6) 0 30px,transparent 32px),
+   radial-gradient(circle at 26% 84%,rgba(200,56,78,.12) 0 76px,transparent 79px),
+   radial-gradient(circle at 90% 92%,rgba(138,154,85,.16) 0 44px,transparent 46px)}
+.stories-bg[data-bg="blush"]::after{inset:0;background:radial-gradient(130% 100% at 50% 30%,transparent 55%,rgba(158,27,50,.12) 100%)}
+
+/* dawn - indigo into rose into gold, the sun coming up */
+.stories-bg[data-bg="dawn"]{background:linear-gradient(180deg,#1E1F3A 0%,#3E3557 24%,#8A5675 50%,#D98579 72%,#F2B886 88%,#F8D59A 100%)}
+.stories-bg[data-bg="dawn"]::before{width:150vmin;height:150vmin;left:50%;bottom:-118vmin;margin-left:-75vmin;border-radius:50%;
+  background:radial-gradient(circle,#FFF2C8 0%,#FBD58E 13%,rgba(248,190,120,.55) 26%,rgba(240,150,120,0) 52%);
+  animation:storyrise 14s cubic-bezier(.2,.7,.2,1) infinite alternate}
+.stories-bg[data-bg="dawn"]::after{inset:-10% -30%;opacity:.5;background:
+   linear-gradient(180deg,transparent 52%,rgba(255,226,200,.22) 56%,transparent 61%,transparent 66%,rgba(255,210,190,.16) 70%,transparent 75%);
+  filter:blur(3px);animation:storyhaze 18s ease-in-out infinite alternate}
+.stories-bg[data-bg="dawn"] i{inset:-10%;opacity:.45;background-image:
+   radial-gradient(1px 1px at 20% 10%,#fff 50%,transparent 51%),radial-gradient(1.2px 1.2px at 70% 6%,#fff 50%,transparent 51%),
+   radial-gradient(1px 1px at 45% 18%,#fff 50%,transparent 51%);background-size:200px 300px;
+  -webkit-mask-image:linear-gradient(#000,transparent 40%);mask-image:linear-gradient(#000,transparent 40%);
+  animation:storytw 4s ease-in-out infinite alternate}
+
+/* cherry - his colour: velvet red, warm sparks, a slow sheen */
+.stories-bg[data-bg="cherry"]{background:
+  radial-gradient(120% 80% at 25% 5%,#D24A5E 0%,#A8213A 30%,#6A0F22 65%,#2E0610 100%)}
+.stories-bg[data-bg="cherry"]::before{filter:blur(7px);background:
+   radial-gradient(circle at 20% 24%,rgba(255,214,200,.20) 0 30px,transparent 32px),
+   radial-gradient(circle at 76% 34%,rgba(241,163,174,.20) 0 60px,transparent 63px),
+   radial-gradient(circle at 58% 72%,rgba(226,194,122,.20) 0 24px,transparent 26px),
+   radial-gradient(circle at 30% 82%,rgba(255,214,200,.10) 0 74px,transparent 77px),
+   radial-gradient(circle at 90% 86%,rgba(226,194,122,.14) 0 36px,transparent 38px)}
+.stories-bg[data-bg="cherry"] i{inset:-50% -100%;opacity:.5;
+  background:linear-gradient(105deg,transparent 42%,rgba(255,220,220,.13) 49%,rgba(255,240,235,.2) 50%,rgba(255,220,220,.13) 51%,transparent 58%);
+  animation:storysheen 7s ease-in-out infinite}
+
+/* rain - a night window: blurred city lights, streaks falling past */
+.stories-bg[data-bg="rain"]{background:
+  radial-gradient(60% 40% at 50% 100%,rgba(184,145,62,.18),transparent 70%),
+  linear-gradient(180deg,#0E1519 0%,#16222A 45%,#1E2C2C 80%,#26332C 100%)}
+.stories-bg[data-bg="rain"]::before{inset:-10%;filter:blur(14px);opacity:.9;background:
+   radial-gradient(circle at 16% 64%,rgba(226,194,122,.45) 0 14px,transparent 18px),
+   radial-gradient(circle at 34% 78%,rgba(200,56,78,.40) 0 18px,transparent 22px),
+   radial-gradient(circle at 70% 70%,rgba(138,154,85,.42) 0 16px,transparent 20px),
+   radial-gradient(circle at 86% 82%,rgba(226,194,122,.40) 0 22px,transparent 26px),
+   radial-gradient(circle at 54% 88%,rgba(241,163,174,.30) 0 12px,transparent 16px),
+   radial-gradient(circle at 8% 90%,rgba(138,154,85,.30) 0 20px,transparent 24px);
+  animation:storyglow 6s ease-in-out infinite alternate}
+.stories-bg[data-bg="rain"]::after{inset:0;opacity:.55;background:
+   radial-gradient(3px 4px at 22% 30%,rgba(255,255,255,.5),transparent 70%),radial-gradient(2px 3px at 64% 22%,rgba(255,255,255,.45),transparent 70%),
+   radial-gradient(4px 5px at 80% 52%,rgba(255,255,255,.4),transparent 70%),radial-gradient(2px 3px at 38% 58%,rgba(255,255,255,.45),transparent 70%),
+   radial-gradient(3px 4px at 12% 46%,rgba(255,255,255,.35),transparent 70%),radial-gradient(2px 2px at 90% 16%,rgba(255,255,255,.4),transparent 70%)}
+.stories-bg[data-bg="rain"] i{top:-30%;left:var(--x);width:1px;height:var(--h,90px);
+  background:linear-gradient(rgba(220,235,240,0),rgba(220,235,240,.55));opacity:var(--o,.6);
+  transform:translate3d(0,0,0) rotate(8deg);animation:storyrain var(--d,1s) linear var(--dl,0s) infinite}
+
+/* paper - warm letter paper, a soft light leak */
+.stories-bg[data-bg="paper"]{background:
+  radial-gradient(90% 60% at 85% 0%,rgba(255,236,200,.7),transparent 60%),
+  radial-gradient(120% 90% at 50% 50%,#F5F0E4 40%,#E6DCC6 100%)}
+.stories-bg[data-bg="paper"]::before{inset:0;opacity:.09;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.stories-bg[data-bg="paper"]::after{width:120%;height:60%;left:-10%;top:-20%;opacity:.5;
+  background:radial-gradient(closest-side,rgba(241,163,174,.35),transparent);filter:blur(10px);
+  animation:storyleak 12s ease-in-out infinite alternate}
+
+@keyframes storytw{from{opacity:.35}to{opacity:1}}
+@keyframes storyfloat{from{transform:translate3d(0,0,0)}to{transform:translate3d(-8px,10px,0)}}
+@keyframes storybokeh{from{transform:translate3d(0,4%,0) scale(1)}to{transform:translate3d(-3%,-4%,0) scale(1.08)}}
+@keyframes storybokeh2{from{transform:translate3d(0,0,0)}to{transform:translate3d(4%,-6%,0)}}
+@keyframes storyrise{from{transform:translate3d(0,9%,0) scale(.94)}to{transform:translate3d(0,0,0) scale(1)}}
+@keyframes storyhaze{from{transform:translate3d(-4%,0,0)}to{transform:translate3d(4%,-2%,0)}}
+@keyframes storysheen{0%{transform:translate3d(-40%,0,0)}60%,100%{transform:translate3d(40%,0,0)}}
+@keyframes storyglow{from{opacity:.65;transform:scale(1)}to{opacity:1;transform:scale(1.04)}}
+@keyframes storyrain{from{transform:translate3d(0,0,0) rotate(8deg)}to{transform:translate3d(-24vh,160vh,0) rotate(8deg)}}
+@keyframes storyleak{from{transform:translate3d(-6%,0,0)}to{transform:translate3d(8%,6%,0)}}
+
+/* ── chat ──────────────────────────────────────────────────────────── */
+.stories-chat{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;
+  padding:12px 2px 8px;scrollbar-width:none;overscroll-behavior:contain}
+.stories-chat.scrolls{overflow-y:auto;touch-action:pan-y}
+.stories-chat::-webkit-scrollbar{display:none}
+.stories-chat::before{content:"";flex:1 0 0}           /* bubbles sit low, like a real chat */
+.stories-m{position:relative;display:flex;flex-direction:column;max-width:82%}
+.stories-m p,.stories-m small{opacity:0;transform:translate3d(0,14px,0) scale(.96);
+  transition:opacity .45s var(--ease),transform .55s cubic-bezier(.2,1.2,.3,1)}
+.stories-m small{transition-delay:.12s}
+.stories-m.her{align-self:flex-start;align-items:flex-start}
+.stories-m.her p,.stories-m.her small{transform-origin:0 100%}
+.stories-m.me{align-self:flex-end;align-items:flex-end}
+.stories-m.me p,.stories-m.me small{transform-origin:100% 100%}
+.stories-m.on p,.stories-m.on small{opacity:1;transform:none}
+.stories-m.on small{opacity:.62}
+.stories-m p{margin:0;padding:11px 15px;border-radius:21px;font-size:1.04rem;line-height:1.42;white-space:pre-line;
+  overflow-wrap:anywhere;text-align:left}
+.stories-m.her p{border-bottom-left-radius:7px;color:#F6F4E8;
+  background:linear-gradient(160deg,rgba(150,168,92,.50),rgba(94,107,47,.55));box-shadow:inset 0 0 0 1px rgba(195,208,140,.35),0 6px 18px rgba(0,0,0,.18)}
+.stories-m.me p{border-bottom-right-radius:7px;color:#FFF5F5;
+  background:linear-gradient(160deg,rgba(214,72,94,.62),rgba(158,27,50,.66));box-shadow:inset 0 0 0 1px rgba(240,125,140,.35),0 6px 18px rgba(0,0,0,.2)}
+.stories-slide[data-tone="light"] .stories-m.her p{color:#26291F;background:linear-gradient(160deg,#EEF0DB,#DCE1BF);box-shadow:inset 0 0 0 1px rgba(94,107,47,.22),0 6px 18px rgba(94,107,47,.10)}
+.stories-slide[data-tone="light"] .stories-m.me p{color:#fff;background:linear-gradient(160deg,#C8384E,#9E1B32);box-shadow:0 8px 22px rgba(158,27,50,.25)}
+.stories-m small{font-size:.66rem;letter-spacing:.05em;margin:4px 8px 4px}
+.stories-m.cont{margin-top:-3px}
+/* the typing dots sit where the next bubble will land, so nothing moves */
+.stories-dots{position:absolute;top:0;display:flex;gap:4px;padding:13px 14px;border-radius:20px;
+  background:rgba(255,255,255,.14);opacity:0;transform:scale(.8);transition:opacity .25s,transform .3s var(--ease)}
+.stories-m.her .stories-dots{left:0;border-bottom-left-radius:7px;transform-origin:0 100%}
+.stories-m.me .stories-dots{right:0;border-bottom-right-radius:7px;transform-origin:100% 100%}
+.stories-slide[data-tone="light"] .stories-dots{background:rgba(38,41,31,.08)}
+.stories-dots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7;animation:storydot 1.1s infinite}
+.stories-dots i:nth-child(2){animation-delay:.15s}.stories-dots i:nth-child(3){animation-delay:.3s}
+.stories-m.stories-typing .stories-dots{opacity:1;transform:none}
+@keyframes storydot{0%,60%,100%{transform:translate3d(0,0,0);opacity:.45}30%{transform:translate3d(0,-4px,0);opacity:1}}
+
+.stories-after{margin:14px 6px 6px;font-family:var(--fd);font-style:italic;font-weight:360;font-size:1.32rem;line-height:1.32;
+  font-variation-settings:"SOFT" 100,"WONK" 1;color:#F1A3AE;text-wrap:balance;
+  opacity:0;transform:translate3d(0,10px,0);transition:opacity .8s var(--ease),transform .9s var(--ease)}
+.stories-slide[data-bg="cherry"] .stories-after,.stories-slide[data-bg="dawn"] .stories-after{color:#FFE3C8}
+.stories-slide[data-bg="olive"] .stories-after{color:#EAD9A8}
+.stories-slide[data-tone="light"] .stories-after{color:#9E1B32}
+.stories-after.on{opacity:1;transform:none}
+
+/* ── stat ──────────────────────────────────────────────────────────── */
+.stories-stat{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 6px 8vh}
+.stories-from{display:flex;align-items:baseline;gap:10px;font-size:.9rem;opacity:.0;transform:translate3d(0,8px,0);
+  transition:opacity .6s var(--ease),transform .7s var(--ease);color:#E3E6CF}
+.stories-from b{font-family:var(--fd);font-weight:400;font-size:1.9rem;line-height:1;color:#fff}
+.stories-from.on{opacity:.85;transform:none}
+.stories-num{margin:22px 0 2px;font-family:var(--fd);font-weight:300;font-size:clamp(4.2rem,24vw,6.4rem);line-height:.92;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums lining-nums;font-variation-settings:"SOFT" 50,"opsz" 144;color:#FFFBEF;
+  text-shadow:0 10px 40px rgba(0,0,0,.25)}
+.stories-lbl{position:relative;height:1.5em;font-size:1rem;color:#E3E6CF}
+.stories-lbl span{position:absolute;left:0;right:0;top:0;transition:opacity .6s var(--ease),transform .7s var(--ease)}
+.stories-lbl span+span{opacity:0;transform:translate3d(0,8px,0)}
+.stories-lbl.to span:first-child{opacity:0;transform:translate3d(0,-8px,0)}
+.stories-lbl.to span+span{opacity:1;transform:none}
+.stories-lbl.mid span:first-child{opacity:0;transform:translate3d(0,-8px,0)}
+.stories-spark{display:block;width:100%;height:140px;margin:30px 0 4px;overflow:visible}
+.stories-spark .line{fill:none;stroke:#F3EFE2;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.stories-spark .area{opacity:.0;transition:opacity 1.2s var(--ease)}
+.stories-spark.done .area{opacity:1}
+.stories-spark .base{stroke:rgba(243,239,226,.18);stroke-width:1;stroke-dasharray:2 5}
+.stories-spark .head{fill:#fff}
+.stories-spark .halo{fill:rgba(243,226,176,.5);transform-box:fill-box;transform-origin:center;animation:storyhalo 1.6s ease-out infinite}
+@keyframes storyhalo{from{transform:scale(.6);opacity:1}to{transform:scale(2.6);opacity:0}}
+.stories-stat .stories-after{margin-left:0;color:#EAD9A8}
+
+/* ── letter ────────────────────────────────────────────────────────── */
+.stories-slide[data-kind="letter"] .stories-body{padding:0 22px}
+.stories-card{position:relative;flex:1;min-height:0;margin-top:14px;border-radius:6px 6px 14px 14px;background:#FCFAF4;color:#26291F;
+  box-shadow:0 30px 60px rgba(84,64,36,.22),0 2px 6px rgba(84,64,36,.12);transform:rotate(-.6deg)}
+.stories-card::before{content:"";position:absolute;z-index:2;top:-13px;left:50%;width:118px;height:30px;margin-left:-59px;
+  background:rgba(226,194,122,.62);transform:rotate(1.6deg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.stories-scroll{position:absolute;inset:0;overflow-y:auto;padding:30px 24px 34px;touch-action:pan-y;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:inherit;
+  -webkit-mask-image:linear-gradient(transparent,#000 18px,#000 calc(100% - 34px),transparent);
+  mask-image:linear-gradient(transparent,#000 18px,#000 calc(100% - 34px),transparent)}
+.stories-scroll::-webkit-scrollbar{display:none}
+.stories-when{display:block;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:#7C806C;margin-bottom:14px}
+.stories-letter{margin:0;font-family:var(--fd);font-size:1.12rem;line-height:1.9;white-space:pre-line;color:#26291F;
+  background-image:linear-gradient(transparent calc(100% - 1px),rgba(38,41,31,.08) 0);background-size:100% 1.9em;
+  -webkit-user-select:text;user-select:text}
+.stories-sig{display:block;margin-top:10px;text-align:right;font-family:var(--fh);font-size:1.7rem;color:#9E1B32}
+.stories-edge{position:absolute;z-index:3;top:50%;width:26px;height:26px;margin-top:-13px;display:grid;place-items:center;
+  color:#7C806C;opacity:.0;transition:opacity .4s;pointer-events:none}
+.stories-edge svg{width:16px;height:16px}
+.stories-edge.l{left:2px}.stories-edge.r{right:2px}
+.stories-slide[data-kind="letter"].on .stories-edge{opacity:.75}
+
+/* ── names ─────────────────────────────────────────────────────────── */
+.stories-names{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:0 6px 7vh}
+.stories-name{margin:0;font-family:var(--fd);font-style:italic;font-weight:340;font-size:clamp(1.7rem,8.4vw,2.35rem);line-height:1.18;
+  font-variation-settings:"SOFT" 100,"WONK" 1;color:#F3EFE2;opacity:0;filter:blur(6px);transform:translate3d(0,12px,0);
+  transition:opacity .9s var(--ease),transform 1s var(--ease),filter .9s var(--ease)}
+.stories-name:nth-child(even){color:#F1A3AE;align-self:flex-end;text-align:right}
+.stories-name.on{opacity:1;filter:blur(0);transform:none}
+.stories-names .stories-after{color:#E2C27A;font-size:1.1rem;margin-top:22px}
+
+/* ── end ───────────────────────────────────────────────────────────── */
+.stories-end{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 8px 10vh}
+.stories-big{margin:0;font-family:var(--fd);font-weight:330;font-size:clamp(3.4rem,17vw,5rem);line-height:.95;letter-spacing:-.025em;
+  font-variation-settings:"SOFT" 100,"WONK" 1,"opsz" 144;color:#FFFBEF;
+  opacity:0;transform:translate3d(0,18px,0);transition:opacity 1s var(--ease),transform 1.1s var(--ease)}
+.stories-small{margin:16px 0 0;font-family:var(--fd);font-style:italic;font-size:1.3rem;color:#F1A3AE;
+  opacity:0;transform:translate3d(0,12px,0);transition:opacity 1s var(--ease) .35s,transform 1.1s var(--ease) .35s}
+.stories-cta{margin-top:34px;border:0;border-radius:99px;padding:14px 26px;background:#F3EFE2;color:#26291F;font-weight:600;font-size:.98rem;
+  box-shadow:0 12px 40px rgba(241,163,174,.25);opacity:0;transform:translate3d(0,12px,0);
+  transition:opacity .9s var(--ease) .7s,transform 1s var(--ease) .7s;touch-action:manipulation}
+.stories-cta:active{transform:scale(.96)}
+.stories-end.on .stories-big,.stories-end.on .stories-small,.stories-end.on .stories-cta{opacity:1;transform:none}
+
+/* a dim veil when she holds, so it reads as "paused" */
+.stories-frame::after{content:"";position:absolute;inset:0;z-index:4;background:rgba(0,0,0,.0);pointer-events:none;transition:background-color .3s}
+.stories.held .stories-frame::after{background:rgba(0,0,0,.08)}
+
+/* reduced motion: instant states, nothing drifts */
+@media (prefers-reduced-motion:reduce){
+  .stories *,.stories *::before,.stories *::after,.stories-frame,.stories-frame::after{animation:none!important;transition:none!important}
+  .storyring-g::before,.storyring .storyring-c::after{animation:none!important}
+  .stories-bg[data-bg="rain"] i{display:none}
+}
+.stories-slides{position:absolute;inset:0}
+.stories-chat{position:relative}

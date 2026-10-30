@@ -1,0 +1,109 @@
+/* fx/flip.css — split-flap countdown + "day N of us" badge (night hero).
+   Selectors are doubled (.flip.flip-on …) so they win over the old .cd rules if mounted into #cd. */
+
+.flip.flip-on{
+  --flip-w:clamp(26px,8.9vw,60px);                 /* card width (fixed; only shrinks past 8 digits) */
+  --flip-hh:calc(clamp(26px,8.9vw,60px)*1.46);     /* card height (always fixed) */
+  --flip-cw:calc(var(--flip-w)*var(--flip-fit,1));
+  --flip-dg:clamp(3px,1vw,6px);                    /* gap between digits of a unit */
+  --flip-ug:clamp(11px,3.6vw,26px);                /* gap between units */
+  --flip-r:calc(var(--flip-w)*.17);
+  --flip-face:#1B201E;                             /* = rgba(255,255,255,.06) over the night, made opaque */
+  --flip-face2:#151917;
+  position:relative;display:block;margin-left:auto;margin-right:auto;
+  min-height:calc(var(--flip-hh) + 30px);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.flip.flip-on div{min-width:0}
+.flip-on .flip-units{display:flex;flex-wrap:nowrap;justify-content:center;align-items:flex-start;gap:var(--flip-ug)}
+.flip-on .flip-u{display:flex;flex-direction:column;align-items:center;flex:none}
+.flip-on .flip-row{display:flex;gap:var(--flip-dg);height:var(--flip-hh);position:relative;isolation:isolate}
+.flip-on .flip-lab{margin-top:12px;height:14px;line-height:14px;font-family:var(--fb);font-size:.64rem;font-weight:500;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--night-ink2,#C9C6B3);padding-left:.26em;white-space:nowrap;opacity:.85}
+.flip-on .flip-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* one card */
+.flip-on .flip-c{position:relative;flex:none;width:var(--flip-cw);height:var(--flip-hh);border-radius:var(--flip-r);
+  -webkit-perspective:calc(var(--flip-hh)*3.2);perspective:calc(var(--flip-hh)*3.2);
+  box-shadow:0 1px 0 rgba(255,255,255,.05),0 10px 22px -6px rgba(0,0,0,.65),0 2px 5px rgba(0,0,0,.4);
+  isolation:isolate}
+/* glass rim + inner shadow, drawn above the faces (no pointer events) */
+.flip-on .flip-c::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;
+  background:linear-gradient(168deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.015) 38%,rgba(255,255,255,0) 50%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.075),inset 0 1px 0 rgba(255,255,255,.12),inset 0 -10px 18px -10px rgba(0,0,0,.6)}
+
+/* halves */
+.flip-on .flip-h{position:absolute;left:0;right:0;height:50%;overflow:hidden}
+.flip-on .flip-top{top:0;border-radius:var(--flip-r) var(--flip-r) 0 0;
+  background:linear-gradient(180deg,#232826 0%,var(--flip-face) 100%);
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.7)}                      /* the hinge: a dark seam … */
+.flip-on .flip-bot{top:50%;border-radius:0 0 var(--flip-r) var(--flip-r);
+  background:linear-gradient(180deg,var(--flip-face2) 0%,#121614 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.085)}               /* … and a hairline highlight under it */
+
+/* the digit: full card height, clipped by each half */
+.flip-on .flip-g{position:absolute;left:0;right:0;top:0;height:200%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-style:normal;font-weight:340;font-size:calc(var(--flip-hh)*.74);line-height:1;letter-spacing:0;
+  font-variant-numeric:lining-nums tabular-nums;font-variation-settings:"SOFT" 60,"WONK" 0;
+  color:var(--night-ink,#F3EFE2);
+  text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.flip-on .flip-bot .flip-g{top:-100%}
+.flip-on .flip-bot .flip-g{color:#E6E1D2}                        /* lower half a touch dimmer: lit from above */
+
+/* shade layers, animated (opacity only) while a flap falls */
+.flip-on .flip-s{position:absolute;inset:0;opacity:0;pointer-events:none;background:#000}
+.flip-on .flip-top .flip-s{background:linear-gradient(180deg,rgba(0,0,0,.2),#000)}
+.flip-on .flip-bot .flip-s{background:linear-gradient(180deg,#000,rgba(0,0,0,.25))}
+
+/* the flaps: top folds on its bottom edge, bottom unfolds from its top edge (the hinge) */
+.flip-on .flip-ft,.flip-on .flip-fb{-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.flip-on .flip-ft{z-index:2;-webkit-transform-origin:50% 100%;transform-origin:50% 100%}
+.flip-on .flip-fb{z-index:2;-webkit-transform-origin:50% 0;transform-origin:50% 0}
+.flip-on .flip-c.flip-go .flip-ft,.flip-on .flip-c.flip-go .flip-fb{will-change:transform}
+
+/* little hinge pins, like a real split-flap: only on the outer edges of each unit, so neighbouring
+   cards' pins never read as one bar bridging the digit gap */
+.flip-on .flip-pin{position:absolute;top:50%;width:2.5px;height:calc(var(--flip-hh)*.1);margin-top:calc(var(--flip-hh)*-.05);
+  background:linear-gradient(180deg,#2D3330,#0B0E0D);border-radius:2px;z-index:4;box-shadow:0 0 0 .5px rgba(0,0,0,.6)}
+.flip-on .flip-pl{left:-1.25px} .flip-on .flip-pr{right:-1.25px}
+.flip-on .flip-c:not(:first-child) .flip-pl,.flip-on .flip-c:not(:last-child) .flip-pr{display:none}
+
+/* seconds: a faint cherry glow.
+   Literal rgba values because they need alpha: rgba(200,56,78,…) = --cherry2 (#C8384E),
+   rgba(241,163,174,…) = --night-em (#F1A3AE). Retune them together with those tokens. */
+.flip-on .flip-sec .flip-row::before{content:"";position:absolute;inset:-34% -26%;z-index:-1;pointer-events:none;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(200,56,78,.36),rgba(200,56,78,.12) 55%,rgba(200,56,78,0));
+  animation:flipGlow 1s ease-in-out infinite}
+.flip-on .flip-sec .flip-c{box-shadow:0 1px 0 rgba(255,255,255,.05),0 10px 24px -6px rgba(0,0,0,.6),0 0 22px -4px rgba(200,56,78,.34)}
+.flip-on .flip-sec .flip-c::after{box-shadow:inset 0 0 0 1px rgba(241,163,174,.14),inset 0 1px 0 rgba(255,255,255,.12),inset 0 -10px 18px -10px rgba(0,0,0,.6)}
+.flip-on .flip-sec .flip-g{text-shadow:0 0 14px rgba(241,163,174,.38),0 1px 0 rgba(0,0,0,.35)}
+.flip-on .flip-sec .flip-lab{color:var(--night-em,#F1A3AE)}
+@keyframes flipGlow{0%,100%{opacity:.7}50%{opacity:1}}
+
+/* ── badge: "♥ day N of us" ───────────────────────────────────────── */
+.flip-badge{display:inline-flex;align-items:center;gap:10px;padding:8px 16px 8px 11px;border-radius:99px;
+  background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.045));
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 8px 24px -10px rgba(0,0,0,.6);
+  font-family:var(--fb);font-size:.84rem;line-height:1.2;letter-spacing:.01em;color:var(--night-ink2,#C9C6B3);white-space:nowrap}
+.flip-badge .flip-bt b{font-family:var(--fd);font-style:italic;font-weight:420;font-size:1.22em;letter-spacing:-.01em;
+  color:var(--night-em,#F1A3AE);margin:0 .14em;display:inline-block;font-variant-numeric:lining-nums;
+  font-variation-settings:"SOFT" 100,"WONK" 1}
+.flip-heart{position:relative;flex:none;width:15px;height:14px;display:inline-block}
+.flip-heart svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:var(--cherry2,#C8384E);
+  filter:drop-shadow(0 0 4px rgba(241,163,174,.5));                /* glow = --night-em */transform-origin:50% 60%;
+  animation:flipBeat 1.6s cubic-bezier(.3,0,.3,1) infinite}
+.flip-heart i{position:absolute;left:50%;top:55%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  border:1px solid var(--night-em,#F1A3AE);opacity:0;transform:scale(.4);
+  animation:flipRing 1.6s cubic-bezier(.2,.7,.2,1) infinite}
+/* lub-dub */
+@keyframes flipBeat{0%{transform:scale(1)}12%{transform:scale(1.24)}22%{transform:scale(.96)}34%{transform:scale(1.14)}50%,100%{transform:scale(1)}}
+@keyframes flipRing{0%,8%{opacity:0;transform:scale(.4)}14%{opacity:.45}60%,100%{opacity:0;transform:scale(1.5)}}
+
+/* pause the idle loops when nobody can see them */
+.flip-paused .flip-heart svg,.flip-paused .flip-heart i,.flip-paused .flip-sec .flip-row::before{animation-play-state:paused}
+
+@media (prefers-reduced-motion:reduce){
+  .flip-heart svg,.flip-heart i,.flip-on .flip-sec .flip-row::before{animation:none}
+  .flip-heart i{display:none}
+}
