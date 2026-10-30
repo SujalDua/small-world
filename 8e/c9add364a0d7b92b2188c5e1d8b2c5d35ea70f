@@ -1,0 +1,27 @@
+fx/jar.css
+  s_69ffc2c6881e5d::t_879fc787811523 7,11
+fx/motion.css
+  s_69ffc2c6881e5d::t_932625340de3de 7,20,28-29,33-42,46-60,95-97
+fx/reels.css
+  s_69ffc2c6881e5d::t_80976adfc6349c 12,25-27
+fx/stories.css
+  s_69ffc2c6881e5d::t_14f7aa1c3dcba0 19-22,24,33,42-43,85,102,119-123,132,255-257,268-270,304
+index.html
+  s_69ffc2c6881e5d::t_9e717b2f795c5e 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ec9add364a0d7b92b2188c5e1d8b2c5d35ea70f",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
