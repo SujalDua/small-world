@@ -1,0 +1,31 @@
+fx/ask.css
+  s_69ffc2c6881e5d::t_59e639799bb1ea 6,50-51,56-61
+fx/motion.css
+  s_69ffc2c6881e5d::t_c3f2d15fad02c4 64,67,71
+fx/reels.css
+  s_69ffc2c6881e5d::t_a1fb0ccde82d0b 221-225
+fx/stories.css
+  s_69ffc2c6881e5d::t_b79521523dece1 57,364-369
+index.html
+  s_69ffc2c6881e5d::t_36c8a61dae3ced 69
+sky.js
+  s_69ffc2c6881e5d::t_f86b573ad079ac 138-140,142-143,280-284,293,308-316
+style.css
+  s_69ffc2c6881e5d::t_df02d6164303e5 126,131,133,346,368,495,610-650
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d76aaf45269f2e95f4d92b5b32c5c38c833f3cf6",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
