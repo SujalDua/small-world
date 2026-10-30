@@ -1,0 +1,23 @@
+fx/ask.css
+  s_69ffc2c6881e5d::t_d6b7d4bdb1ba20 7,23
+index.html
+  s_69ffc2c6881e5d::t_b0fe87277b64c6 69
+style.css
+  s_69ffc2c6881e5d::t_cdf048e24c3c33 651-652
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0ab9507683efa306e1a3e17d44652d4026d51d1",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "unknown"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
