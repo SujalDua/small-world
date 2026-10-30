@@ -1,0 +1,39 @@
+fx/ask.css
+  s_de90b4cf238021::t_bc6b2add71f461 1-55
+fx/flip.css
+  s_de90b4cf238021::t_894e850885b0e2 1-109
+fx/hug.css
+  s_de90b4cf238021::t_5df5be2016c063 1-69
+fx/jar.css
+  s_de90b4cf238021::t_2dff2b1c1b1510 1-31
+fx/motion.css
+  s_de90b4cf238021::t_af5983465a965f 1-73
+fx/reels.css
+  s_de90b4cf238021::t_c7c0dd4c557c5c 1-220
+fx/seal.css
+  s_de90b4cf238021::t_3b96e929b1974d 1-116
+fx/stories.css
+  s_de90b4cf238021::t_403bb96585f64d 1-349
+index.html
+  s_de90b4cf238021::t_69575110de904d 69
+sky.js
+  s_de90b4cf238021::t_e4d01441ff1fa6 15-16,132-133,185,197-261,275-277,295,300
+style.css
+  s_de90b4cf238021::t_831c26534eaa91 193-196,198,281-286,597-609
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "16f42638870f3c840e2c4b789feca0f55c21edb1",
+  "prompts": {},
+  "sessions": {
+    "s_de90b4cf238021": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "3de02b08-4803-4426-9d0f-16634a0b177b",
+        "model": "unknown"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
