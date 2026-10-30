@@ -648,3 +648,5 @@ main > .ch:not(.live) *,main > .ch:not(.live) *::before,main > .ch:not(.live) *:
 /* the promise paper: one rule under each promise, so a line can never run through the handwriting */
 .ruled{background-image:linear-gradient(90deg,transparent 46px,rgba(158,27,50,.18) 46px 47px,transparent 47px)}
 .prom li{border-bottom:1px solid rgba(94,107,47,.14)} .prom li:last-child{border-bottom:0}
+/* the door: a mood can only be picked once it has appeared */
+#moods:not(.on),#quiet:not(.on){pointer-events:none}
