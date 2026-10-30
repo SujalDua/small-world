@@ -41,7 +41,7 @@
   .msg{min-height:1.6em;margin:18px 0 0;font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:1.08rem;color:#F1A3AE}
   .shake{animation:sh .45s}
   @keyframes sh{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
-  .opening main{opacity:.0;transition:opacity .6s}
+  .opening main{opacity:0;visibility:hidden}
   .wait{position:fixed;inset:0;display:grid;place-items:center;font-family:"Fraunces",Georgia,serif;font-style:italic;color:#C9C6B3;
     opacity:0;pointer-events:none;transition:opacity .6s}
   .opening .wait{opacity:1}
@@ -66,7 +66,7 @@
 <script>
 (function(){
 "use strict";
-var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.c09f848d15.bin", KEYNAME="tofu.k";
+var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.7f28f9f813.bin", KEYNAME="tofu.k";
 var $=function(id){ return document.getElementById(id); };
 // a sky of tiny stars, drawn with one element
 (function(){
@@ -80,8 +80,24 @@ if (!window.crypto || !crypto.subtle){ document.body.className=""; $("m").textCo
 function b64(s){ var b=atob(s), u=new Uint8Array(b.length); for (var i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
 function u8b64(u){ var s=""; for (var i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s); }
 function norm(s){ return String(s||"").toLowerCase().replace(/\s+/g,""); }
-var vault=fetch(VAULT,{cache:"force-cache"}).then(function(r){ if (!r.ok) throw new Error("vault "+r.status); return r.arrayBuffer(); });
-vault.catch(function(){});
+// fetched once and shared; a failed fetch is dropped so the next try asks again, and that try goes past the cache,
+// which may be holding the failure (a lost signal or a 404 must not stick)
+var vaultP=null, tries=0;
+function vault(){
+  return vaultP || (vaultP=fetch(VAULT,{cache:tries++ ? "reload" : "force-cache"}).then(function(r){ if (!r.ok) throw new Error("vault "+r.status); return r.arrayBuffer(); })
+    .catch(function(e){ vaultP=null; throw e; }));
+}
+vault().catch(function(){});
+var OFFLINE="Couldn't open it just now — check the internet and try again.", CHANGED="It just changed — give it a minute, then reload.";
+// a network failure or a missing vault, as opposed to a key that doesn't fit
+function netFail(err){ return !!err && (err.name==="TypeError" || /^vault \d/.test(err.message||"")); }
+function gone(err){ return !!err && /^vault 404/.test(err.message||""); }
+// the vault this page asks for is gone: a deploy replaced the site while this copy sat in a cache. Fetch the new page, once
+function reloadOnce(){
+  try{ if (Date.now()-(+sessionStorage.getItem("tofu.reload")||0) < 60000) return false;
+       sessionStorage.setItem("tofu.reload",String(Date.now())); sessionStorage.setItem("tofu.upd","1"); }catch(e){ return false; }
+  location.reload(); return true;
+}
 
 function derive(pass){
   return crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]).then(function(base){
@@ -89,7 +105,7 @@ function derive(pass){
   });
 }
 function unseal(key){
-  return vault.then(function(buf){
+  return vault().then(function(buf){
     return crypto.subtle.decrypt({name:"AES-GCM",iv:new Uint8Array(buf,0,12)},key,new Uint8Array(buf,12));
   });
 }
@@ -116,7 +132,11 @@ function build(ab){
   });
   return html;
 }
+var opened=false;
 function enter(html){
+  // the page is written once: a second write (her remembered key and a typed answer both landing) would wipe the
+  // first copy and leave its 3D loop running unseen
+  if (opened) return; opened=true;
   // never swap documents mid-load: a returning visit unlocks from cache so fast that
   // document.open() would otherwise abort this page's own load
   var go=function(){ document.open(); document.write(html); document.close(); };
@@ -124,6 +144,7 @@ function enter(html){
 }
 function tryKey(key, remember){
   return unseal(key).then(function(ab){
+    if (opened) return true;
     var html=build(ab);
     if (remember) crypto.subtle.exportKey("raw",key).then(function(raw){ try{ localStorage.setItem(KEYNAME,u8b64(new Uint8Array(raw))); }catch(e){} }).then(function(){ enter(html); });
     else enter(html);
@@ -134,14 +155,27 @@ function tryKey(key, remember){
 var saved=null; try{ saved=localStorage.getItem(KEYNAME); }catch(e){}
 if (saved){
   document.body.className="opening";
-  crypto.subtle.importKey("raw",b64(saved),{name:"AES-GCM"},true,["decrypt"])
+  // decoded inside the chain, so a damaged key lands in the catch (and is forgotten) instead of stopping this script
+  Promise.resolve().then(function(){ return crypto.subtle.importKey("raw",b64(saved),{name:"AES-GCM"},true,["decrypt"]); })
     .then(function(k){ return tryKey(k,false); })
-    .catch(function(){ try{ localStorage.removeItem(KEYNAME); }catch(e){} document.body.className=""; $("a").focus(); });
-} else { document.body.className=""; }
+    .catch(function(err){
+      if (gone(err) && reloadOnce()) return;
+      // only a key that no longer fits is forgotten; a dropped connection or a missing vault keeps it for next time
+      if (netFail(err)) $("m").textContent=gone(err) ? CHANGED : OFFLINE; else { try{ localStorage.removeItem(KEYNAME); }catch(e){} }
+      document.body.className=""; $("a").focus();
+    });
+  // a slow download is still coming: say so, and keep waiting. The form only comes back on a real failure, since typing
+  // would wait on the same download
+  setTimeout(function(){ var w=document.querySelector(".wait"); if (w && document.body.className==="opening") w.textContent="still opening… slow internet, maybe"; },12000);
+} else {
+  document.body.className="";
+  try{ if (sessionStorage.getItem("tofu.upd")){ sessionStorage.removeItem("tofu.upd"); $("m").textContent="It just updated — type it once more."; } }catch(e){}
+}
 
 var wrong=0, LINES=["Hmm, not that one. Try again 🌷","Hint: it's something sweet.","My favourite sweet, actually. You know this one."];
 $("f").addEventListener("submit",function(e){
   e.preventDefault();
+  if (opened || document.body.className==="opening") return;
   var v=norm($("a").value), btn=$("b"), m=$("m");
   if (!v){ m.textContent="Type it in, one word."; return; }
   btn.disabled=true; m.textContent="";
@@ -152,7 +186,8 @@ $("f").addEventListener("submit",function(e){
       var f=$("f"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
       $("a").select();
     } else {
-      m.textContent="Couldn't open it just now — check the internet and try again.";
+      if (gone(err) && reloadOnce()) return;
+      m.textContent=gone(err) ? CHANGED : OFFLINE;
     }
   });
 });
