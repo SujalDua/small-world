@@ -66,7 +66,7 @@
 <script>
 (function(){
 "use strict";
-var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.a45f3ca746.bin", KEYNAME="tofu.k";
+var SALT="DejHGgtYqCLAsDTjRTu9QA==", ITER=250000, VAULT="assets/vault.77000951d1.bin", KEYNAME="tofu.k";
 var $=function(id){ return document.getElementById(id); };
 // a sky of tiny stars, drawn with one element
 (function(){
@@ -108,9 +108,11 @@ function build(ab){
     Object.keys(text).forEach(function(t){ text[t]=text[t].replace(rx,url[p]); });
   });
   var html=text["index.html"];
-  ["content.js","app.js","room.js"].forEach(function(p){
-    var u=URL.createObjectURL(new Blob([text[p]],{type:"text/javascript"}));
-    html=html.replace('src="'+p+'"','src="'+u+'"');
+  // every sealed script and stylesheet becomes a blob the page loads in its usual place
+  Object.keys(text).forEach(function(p){
+    var m=/\.(js|css)$/.exec(p); if (!m) return;
+    var u=URL.createObjectURL(new Blob([text[p]],{type:m[1]==="js"?"text/javascript":"text/css"}));
+    html=html.split((m[1]==="js"?'src="':'href="')+p+'"').join((m[1]==="js"?'src="':'href="')+u+'"');
   });
   return html;
 }
