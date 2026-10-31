@@ -46,6 +46,8 @@ var bgMat=new THREE.ShaderMaterial({
     "  float rays=pow(.5+.5*sin(q.x*6.0+cur*6.0+uTime*.05),3.0);",
     "  float a=band*cur*rays*(.35+.65*sin(ph*3.1416));",
     "  c+=vec3(.36,.52,.24)*a*.30 + vec3(.55,.30,.38)*a*a*.10;",
+    // the dark pulls inward around the moon and the centre column (constant math, compiled once)
+    "  vec2 vg=vUv-.5; c*=1.0-dot(vg,vg)*0.5;",
     // a little grain so the gradient never bands
     "  c+= (h(vUv*vec2(1920.0,1080.0)+uTime)-.5)/255.0*2.0;",
     "  gl_FragColor=vec4(c,1.0);",
@@ -286,6 +288,7 @@ function frame(){
   bgMat.uniforms.uTime.value=t; bgMat.uniforms.uPhase.value=ph;
   far.material.uniforms.uTime.value=t; mid.material.uniforms.uTime.value=t; near.material.uniforms.uTime.value=t;
   fm.uniforms.uTime.value=t;
+  if (!RM) glow.material.opacity=.92+.08*Math.sin(t*.22);   // the moon breathes, a slow ~28s swell
   // scroll lifts the camera slowly through the sky; the pointer leans it a little
   look.x+=(pointer.x-look.x)*.03; look.y+=(pointer.y-look.y)*.03;
   cam.position.x=look.x*1.4; cam.position.y=-ph*14+look.y*-.8;

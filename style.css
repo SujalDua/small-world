@@ -10,8 +10,15 @@
   --fd:"Fraunces",Georgia,"Times New Roman",serif;
   --fb:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --fh:"Caveat","Bradley Hand","Segoe Print",cursive;
-  --r:22px; --shadow:0 18px 50px rgba(38,41,31,.12),0 2px 8px rgba(38,41,31,.06);
-  --ease:cubic-bezier(.2,.7,.2,1);
+  --r:22px;
+  /* paper lifts off the page with candlelit depth: a tight neutral contact, two warm ambient layers */
+  --shadow:0 1px 2px rgba(38,41,31,.08),0 10px 24px rgba(120,74,44,.10),0 28px 60px rgba(120,74,44,.12);
+  /* one ease per kind of motion, so each transition reads as chosen rather than CSS-default */
+  --ease:cubic-bezier(.2,.7,.2,1);            /* the neutral default */
+  --ease-enter:cubic-bezier(.16,.84,.24,1);   /* soft entrance, long settle, no overshoot */
+  --ease-tap:cubic-bezier(.34,.07,.2,1);      /* snappy press and release */
+  --ease-spring:cubic-bezier(.34,1.56,.64,1); /* a gentle overshoot, for the toys only */
+  --ease-long:cubic-bezier(.22,1,.36,1);      /* luxurious expo-out, for the finale */
   color-scheme:light;
 }
 :root[data-theme="midnight"]{
@@ -19,7 +26,8 @@
   --ink:#EEEAD9; --ink2:#C9C6B3; --ink3:#8E8F7C; --line:rgba(238,234,217,.12);
   --olive:#A9BA6E; --olive2:#C3D08C; --olive-mist:#2A3120;
   --cherry:#E0566A; --cherry2:#F07D8C; --cherry-mist:#3A1E22; --gold:#E2C27A;
-  --shadow:0 18px 50px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.3);
+  /* dark, but the big layer biased to deep plum so paper never casts dead black */
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 44px rgba(10,4,10,.5),0 2px 8px rgba(0,0,0,.3);
   color-scheme:dark;
 }
 :root[data-theme="tulip"]{
@@ -39,6 +47,8 @@
   --ink:#1F2A27; --ink2:#3F4D48; --ink3:#73817B; --line:rgba(31,42,39,.12);
   --olive:#4F6B4A; --olive2:#7C977A; --olive-mist:#DCE6DA;
   --cherry:#A23A3A; --cherry2:#C65A5A; --cherry-mist:#F1D9D7; --gold:#A88A4A;
+  /* cool-green paper: keep the shadow neutral so warm brown doesn't read as a smudge */
+  --shadow:0 1px 2px rgba(31,42,39,.08),0 10px 24px rgba(31,42,39,.09),0 28px 60px rgba(31,42,39,.11);
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -63,9 +73,12 @@ a{color:inherit}
 :root[data-theme="midnight"] .grain{mix-blend-mode:screen;opacity:.035}
 
 /* ── the sky behind the night chapters ─────────────────────────────── */
-#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;
-  background:radial-gradient(120% 80% at 50% 110%,#3B2A24 0%,#1A2219 38%,#0C1012 100%)}
-#sky.off{visibility:hidden}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:1;
+  transition:opacity 1.1s var(--ease);
+  /* the dark pulls inward (the vignette) even on the no-WebGL fallback, so both paths match */
+  background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(4,6,8,.6) 100%),
+    radial-gradient(120% 80% at 50% 110%,#3B2A24 0%,#1A2219 38%,#0C1012 100%)}
+#sky.off{opacity:0}       /* night gives way to day as one gesture, not a hard hide */
 main{position:relative;z-index:1;transition:opacity 1.4s var(--ease),visibility 1.4s}
 body.locked main{opacity:0;visibility:hidden}
 
@@ -80,7 +93,7 @@ body.sheeted .bar>*{pointer-events:none}
   background:rgba(252,250,244,.82);background:color-mix(in srgb,var(--paper) 82%,transparent);color:var(--ink);
   display:grid;place-items:center;font-size:17px;line-height:1;
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  box-shadow:0 4px 16px rgba(0,0,0,.08);transition:transform .25s var(--ease),background .4s}
+  box-shadow:0 4px 16px rgba(0,0,0,.08);transition:transform .25s var(--ease-tap),background .4s}
 .ibtn:active{transform:scale(.92)}
 .ibtn svg{width:18px;height:18px}
 .brand{font-family:var(--fd);font-style:italic;font-weight:400;font-size:15px;letter-spacing:.01em;
@@ -116,7 +129,8 @@ body.sheeted .bar>*{pointer-events:none}
 p{margin:0 0 1em}
 
 /* reveal on scroll */
-.rv{opacity:0;transform:translateY(22px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);
+/* opacity resolves first (she can read it), transform keeps easing a little longer (it settles) */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s var(--ease-enter),transform 1.25s var(--ease-enter);
   transition-delay:var(--d,0s)}
 .rv.in{opacity:1;transform:none}
 
@@ -141,7 +155,7 @@ p{margin:0 0 1em}
 .moods button{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;
   border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--night-ink);
   text-align:left;font-size:.98rem;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  transition:background .3s,border-color .3s,transform .25s var(--ease)}
+  transition:background .3s,border-color .3s,transform .3s var(--ease-spring)}
 .moods button:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3)}
 .moods button:active{transform:scale(.97)}
 .moods b{font-size:1.25rem;font-weight:400}
@@ -287,11 +301,12 @@ p{margin:0 0 1em}
 .fade.out{opacity:0;transform:translateY(8px)}
 .ctrl{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
 .dots{display:flex;gap:6px;flex-wrap:wrap;flex:1;justify-content:center}
-.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .3s,transform .3s}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .3s,transform .35s var(--ease-spring)}
 .dots i.on{background:var(--cherry2);transform:scale(1.3)}
 .sky .dots i{background:rgba(255,255,255,.2)} .sky .dots i.on{background:var(--night-em)}
 .arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--paper);
-  display:grid;place-items:center;font-size:18px;flex:none}
+  display:grid;place-items:center;font-size:18px;flex:none;transition:transform .2s var(--ease-tap),background .3s}
+.arrow:active{transform:scale(.9)}
 .sky .arrow{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:var(--night-ink)}
 .linkbtn{background:none;border:0;padding:6px 0;font-size:.88rem;color:var(--ink3);text-decoration:underline;text-underline-offset:4px}
 .sky .linkbtn{color:rgba(243,239,226,.6)}
@@ -336,7 +351,8 @@ p{margin:0 0 1em}
 .react small{font-family:var(--fb);font-size:.8rem;color:var(--ink3);margin-left:6px}
 
 /* ── the 1BHK ───────────────────────────────────────────────────────── */
-#home{background:radial-gradient(120% 90% at 50% 0%,#232A1C 0%,#141811 60%,#0F120D 100%);color:var(--night-ink)}
+#home{background:radial-gradient(120% 90% at 50% 38%,transparent 45%,rgba(6,8,4,.55) 100%),
+  radial-gradient(120% 90% at 50% 0%,#232A1C 0%,#141811 60%,#0F120D 100%);color:var(--night-ink)}
 #home .k{color:var(--night-k)} #home .t em{color:var(--night-em)} #home .lead{color:var(--night-ink2)}
 .hquote{font-family:var(--fd);font-style:italic;font-size:1.12rem;color:var(--night-ink);
   border-left:2px solid var(--night-k);padding:2px 0 2px 16px;margin:0 0 18px;white-space:pre-line}
@@ -353,7 +369,7 @@ p{margin:0 0 1em}
 .hint3d.off{opacity:0}
 .pin{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:0;padding:0;
   background:rgba(243,239,226,.14);box-shadow:0 0 0 1px rgba(243,239,226,.38);display:grid;place-items:center;
-  transition:opacity .4s,transform .3s var(--ease);z-index:2}
+  transition:opacity .4s,transform .4s var(--ease-spring);z-index:2}
 .pin::after{content:"";width:7px;height:7px;border-radius:50%;background:#F3EFE2;box-shadow:0 0 10px #F3EFE2}
 .pin.on{background:rgba(241,163,174,.35);box-shadow:0 0 0 2px var(--night-em)}
 .pin.hid{opacity:0;pointer-events:none}
@@ -383,7 +399,7 @@ p{margin:0 0 1em}
 .prom{list-style:none;margin:0;padding:0}
 .prom li{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:10px 0 14px;align-items:start}
 .tick{width:30px;height:30px;border-radius:50%;border:2px solid var(--olive2);background:transparent;padding:0;margin-top:4px;
-  display:grid;place-items:center;transition:background .3s,border-color .3s,transform .3s var(--ease)}
+  display:grid;place-items:center;transition:background .3s,border-color .3s,transform .4s var(--ease-spring)}
 .tick svg{width:16px;height:16px;stroke:#fff;stroke-width:3;fill:none;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .5s .1s}
 .tick[aria-pressed="true"]{background:var(--olive);border-color:var(--olive)}
 .tick[aria-pressed="true"] svg{stroke-dashoffset:0}
@@ -435,7 +451,7 @@ p{margin:0 0 1em}
 .sbox .lt p:first-child{color:var(--ink)}
 .close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:var(--bg2);font-size:20px;line-height:1}
 .okbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:99px;padding:13px 22px;
-  background:var(--ink);color:var(--paper);font-weight:600;font-size:.95rem;transition:transform .2s var(--ease),opacity .2s}
+  background:var(--ink);color:var(--paper);font-weight:600;font-size:.95rem;transition:transform .2s var(--ease-tap),opacity .2s}
 .okbtn:active{transform:scale(.96)}
 .okbtn.cherry{background:var(--cherry);color:#fff}
 .okbtn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
@@ -540,23 +556,29 @@ input[type=range]{flex:1;accent-color:var(--cherry2)}
 
 /* ── finale ─────────────────────────────────────────────────────────── */
 #finale{padding-bottom:60px}
+/* the last letter drifts up and keeps easing after it is already readable - the held-breath feel.
+   transform (1.9s) outlasts opacity (1.5s); the blur matches the site's reveal language. */
 .fl p{font-family:var(--fd);font-weight:330;font-size:clamp(1.18rem,4.3vw,1.42rem);line-height:1.72;color:var(--night-ink);
-  opacity:0;transform:translateY(14px);transition:opacity 1.2s var(--ease),transform 1.2s var(--ease)}
-.fl p.in{opacity:1;transform:none}
+  opacity:0;transform:translateY(14px);
+  transition:opacity 1.5s var(--ease-long),transform 1.9s var(--ease-long),filter 1.2s var(--ease-long)}
+.fl p.in{opacity:1;transform:none;filter:none}
 .fl p:first-child{font-style:italic;font-size:clamp(1.5rem,5vw,1.9rem)}
-.fl p.strong{font-style:italic;color:var(--night-em)}
+.fl p.strong{font-style:italic;color:var(--night-em);transition-duration:1.9s}   /* the confession lines land slower */
+.fl p.strong:last-child{transition-delay:.45s}                                    /* a beat of silence before the last line */
+@media (prefers-reduced-motion:no-preference){ .fl p{filter:blur(7px)} }          /* only when motion is allowed, so no line is ever stuck soft */
 .fsig{font-family:var(--fh);font-size:clamp(2.4rem,9vw,3.4rem);color:var(--night-em);margin:6px 0 40px}
 .voice{display:flex;align-items:center;gap:18px;padding:18px;border-radius:22px;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.12);margin:10px 0 12px}
 .play{flex:none;width:64px;height:64px;border-radius:50%;border:0;background:var(--night-em);color:#2A1216;
-  display:grid;place-items:center;box-shadow:0 0 0 0 rgba(241,163,174,.5);transition:transform .25s var(--ease)}
+  display:grid;place-items:center;box-shadow:0 0 0 0 rgba(241,163,174,.5);transition:transform .25s var(--ease-tap)}
 .play:active{transform:scale(.93)}
 .play.on{animation:pulse 1.4s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(241,163,174,.55)}100%{box-shadow:0 0 0 22px rgba(241,163,174,0)}}
 .play svg{width:24px;height:24px;fill:currentColor}
 .wave{flex:1;display:flex;align-items:center;gap:3px;height:40px}
 .wave i{flex:1;max-width:5px;border-radius:3px;background:rgba(243,239,226,.35);height:var(--h,30%);transition:background .3s}
-.voice.on .wave i{background:var(--night-em);animation:wv .9s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.voice.on .wave i{background:rgba(243,239,226,.30);animation:wv .9s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.voice.on .wave i.done{background:var(--night-em)}   /* his words fill the waveform left to right as it plays */
 @keyframes wv{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1.15)}}
 .voice b{display:block;font-family:var(--fd);font-weight:400;font-size:1.15rem}
 .vcap{font-size:.86rem;color:var(--night-ink2);margin:0 0 50px}
@@ -604,7 +626,17 @@ input[type=range]{flex:1;accent-color:var(--cherry2)}
 .jarbox{position:relative;height:clamp(340px,60vh,500px);margin:18px auto 4px;max-width:520px;cursor:pointer;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 /* the finale's moon rises behind the letter: keep its lines crisp over the bright disc */
-#finale .fl p,#finale .fsig,#finale .vcap,#finale .moonrow .capt,#finale .bye{text-shadow:0 1px 14px rgba(12,16,18,.85)}
+#finale .fl p,#finale .vcap,#finale .moonrow .capt,#finale .bye{text-shadow:0 1px 14px rgba(12,16,18,.85)}
+/* the sign-off: crisp over the moon, with a tender rose halo (bookend B) */
+#finale .fsig{text-shadow:0 1px 14px rgba(12,16,18,.85),0 0 30px rgba(241,163,174,.4)}
+/* when the heart completes, his name kindles - the exact same sweep (130% -> -30%) her name made at the door.
+   No filter on the clipped ink: filter + background-clip:text can drop the glyphs on some iOS Safari builds,
+   and a blank signature at the climax is the worst outcome - the base rose + dark finale carry legibility. */
+@media (prefers-reduced-motion:no-preference){
+  .fsig.kindle{background:linear-gradient(100deg,var(--night-em) 0 38%,#FCE6C0 50%,var(--night-em) 62% 100%);
+    background-size:240% 100%;background-position:130% 0;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:nameShim 1.9s var(--ease) 1 both}
+}
 /* the fireflies gather into a heart here (fx/stage-finale.js) */
 .finheart{height:min(72vw,340px);pointer-events:none}
 
@@ -650,3 +682,32 @@ main > .ch:not(.live) *,main > .ch:not(.live) *::before,main > .ch:not(.live) *:
 .prom li{border-bottom:1px solid rgba(94,107,47,.14)} .prom li:last-child{border-bottom:0}
 /* the door: a mood can only be picked once it has appeared */
 #moods:not(.on),#quiet:not(.on){pointer-events:none}
+
+/* ── the elevation pass: one night, one light, one breath ──────────────── */
+/* the shimmer bookend: her pet-name kindles here at the door, his signature kindles at the
+   very end as the heart forms - the same sweep, exactly twice, framing the whole scroll.
+   Scoped out of reduced-motion so the clip never strands transparent text; the base <em>
+   keeps its solid rose colour for the still case. */
+@media (prefers-reduced-motion:no-preference){
+  #gate .hello span.shim em{background:linear-gradient(100deg,var(--night-em) 0 38%,#FCE6C0 50%,var(--night-em) 62% 100%);
+    background-size:240% 100%;background-position:130% 0;-webkit-background-clip:text;background-clip:text;color:transparent}
+  #gate .hello span.shim.on em{animation:nameShim 1.6s var(--ease) .12s 1 both}
+}
+@keyframes nameShim{to{background-position:-30% 0}}
+
+/* "day N of us" - the most personal number on the page - wakes with a single rose bloom the
+   first time it is seen (the reveal observer stamps .in once). The number itself never counts. */
+.hsince.in{animation:badgeWake 1.6s var(--ease) both}
+@keyframes badgeWake{0%{box-shadow:0 0 0 0 rgba(241,163,174,0)}
+  30%{box-shadow:0 0 34px 7px rgba(241,163,174,.38)}100%{box-shadow:0 0 0 0 rgba(241,163,174,0)}}
+
+/* the big quote cards: let punctuation hang into the margin (a silent no-op off WebKit/iPhone) */
+.card .qq,.big{hanging-punctuation:first last}
+
+/* a graceful close: the last line is the slowest reveal on the page; the exit link draws a hairline */
+#finale .bye{transition-duration:2.4s}
+.totop{position:relative;opacity:.55;transition:color .5s var(--ease),opacity .5s var(--ease)}
+.totop:hover,.totop:focus-visible{color:var(--night-em);opacity:1}
+.totop::after{content:"";position:absolute;left:50%;bottom:-6px;width:0;height:1px;background:var(--night-em);
+  transition:width .6s var(--ease),left .6s var(--ease)}
+.totop:hover::after,.totop:focus-visible::after{left:15%;width:70%}
