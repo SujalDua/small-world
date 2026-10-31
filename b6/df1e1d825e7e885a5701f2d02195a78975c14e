@@ -1,0 +1,23 @@
+index.html
+  s_69ffc2c6881e5d::t_f769a17fa6255d 69
+sky.js
+  s_69ffc2c6881e5d::t_95bbf2f5a05afb 49-50,291
+style.css
+  s_69ffc2c6881e5d::t_b688341e0c6b93 13-21,29-30,50-51,76-81,96,132-133,158,304,308-309,354-355,372,402,454,559-560,562-564,566-568,573,580-581,629-639,685-713
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b6df1e1d825e7e885a5701f2d02195a78975c14e",
+  "prompts": {},
+  "sessions": {
+    "s_69ffc2c6881e5d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09a30dbe-1ed7-4be6-ba56-88a32a4240e9",
+        "model": "unknown"
+      },
+      "human_author": "unknown"
+    }
+  }
+}
